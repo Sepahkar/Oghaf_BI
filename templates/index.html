@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flask Leaflet Map Application</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="#">Flask Map App</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" id="loadDataBtn">Load Data</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" id="clearMapBtn">Clear Map</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container-fluid mt-3">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Map Controls</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="locationSearch" class="form-label">Search Location</label>
+                            <input type="text" class="form-control" id="locationSearch" placeholder="Enter location...">
+                        </div>
+                        <button type="button" class="btn btn-success w-100 mb-2" id="searchBtn">Search</button>
+                        <button type="button" class="btn btn-info w-100 mb-2" id="getCurrentLocationBtn">My Location</button>
+                        <button type="button" class="btn btn-warning w-100 mb-2" id="addMarkerBtn">Add Marker</button>
+                        
+                        <hr>
+                        
+                        <h6>Map Layers</h6>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="mapLayer" id="streetMap" value="street" checked>
+                            <label class="form-check-label" for="streetMap">Street Map</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="mapLayer" id="satelliteMap" value="satellite">
+                            <label class="form-check-label" for="satelliteMap">Satellite</label>
+                        </div>
+                        
+                        <hr>
+                        
+                        <div id="locationInfo" class="mt-3">
+                            <h6>Location Info</h6>
+                            <p id="coordinates" class="text-muted">Click on map to see coordinates</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Map Container -->
+            <div class="col-md-9">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div id="map" style="height: 600px; width: 100%;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Adding Markers -->
+    <div class="modal fade" id="markerModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add New Marker</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="markerForm">
+                        <div class="mb-3">
+                            <label for="markerName" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="markerName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="markerDescription" class="form-label">Description</label>
+                            <textarea class="form-control" id="markerDescription" rows="3"></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="markerLat" class="form-label">Latitude</label>
+                                <input type="number" class="form-control" id="markerLat" step="any" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="markerLng" class="form-label">Longitude</label>
+                                <input type="number" class="form-control" id="markerLng" step="any" required>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveMarkerBtn">Save Marker</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='js/map.js') }}"></script>
+</body>
+</html>
