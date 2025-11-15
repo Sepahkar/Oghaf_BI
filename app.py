@@ -188,6 +188,10 @@ SAMPLE_DATA = {
 def index():
     return render_template('dashboard.html')
 
+@app.route('/test_simple.html')
+def test_simple():
+    return send_from_directory('.', 'test_simple.html')
+
 @app.route('/api/provinces')
 def get_provinces():
     """Get all provinces data"""

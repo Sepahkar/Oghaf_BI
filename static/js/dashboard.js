@@ -729,7 +729,14 @@ $(document).ready(function() {
     }
 
     function hideLoading() {
+        console.log('Hiding loading modal...');
         $('#loadingModal').modal('hide');
+        // Force hide if modal doesn't respond
+        setTimeout(function() {
+            $('#loadingModal').removeClass('show').hide();
+            $('.modal-backdrop').remove();
+            $('body').removeClass('modal-open').css('padding-right', '');
+        }, 100);
     }
 
     function showAlert(message, type) {
