@@ -3,133 +3,119 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>داشبورد مدیریتی اوقاف</title>
+    <title>داشبورد مدیریتی اوقاف (V2)</title>
     
-    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='images/favicon.ico') }}">
-
     <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
-    
     <link rel="stylesheet" href="{{ url_for('static', filename='css/leaflet.css') }}" />
-    
     <link rel="stylesheet" href="{{ url_for('static', filename='css/all.min.css') }}">
-    
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/jquery.dataTables.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/buttons.dataTables.min.css') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='images/favicon.ico') }}">
+    <style>
+        /* استایل‌های مورد نیاز برای هدر ثابت و طراحی جدید */
+        #main-content { margin-top: 20px; }
+        .sidebar-card { background-color: #fdfdfd; border-radius: 10px; }
+        .sidebar-header { text-align: center; padding: 20px; border-bottom: 1px solid #eee; }
+        .sidebar-header img { max-height: 80px; }
+        .lost-revenue-box {
+            background-color: #fff4f4;
+            border: 1px solid #dc3545;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+        .lost-revenue-box .value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #dc3545;
+        }
+        .chart-container { height: 250px; margin-top: 20px; }
+        #dataTable { width: 100% !important; } /* برای DataTables */
+    </style>
 </head>
-
 <body class="bg-light-subtle">
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
         <div class="container-fluid">
-            <a class="navbar-brand" href="#">
-                <i class="fas fa-landmark me-2"></i> 
-                داشبورد مدیریتی سازمان اوقاف و امور خیریه
-            </a>
-            <div class="navbar-nav ms-auto">
-                <span class="navbar-text">
-                    <i class="fas fa-user-shield me-1"></i>
-                    مدیر سیستم
-                </span>
-            </div>
+            <a class="navbar-brand" href="#"><i class="fas fa-landmark me-2"></i> داشبورد مدیریتی سازمان اوقاف</a>
+            <div class="navbar-nav ms-auto"><span class="navbar-text"><i class="fas fa-user-shield me-1"></i> مدیر سیستم</span></div>
         </div>
     </nav>
 
     <div class="container-fluid mt-3">
-
         <div class="row">
             <div class="col-12">
                 <div class="card card-body pt-3 pb-2 mb-3 shadow-sm">
-                    <nav aria-label="breadcrumb">
-                        <ol class="breadcrumb m-0" id="breadcrumb">
-                            <li class="breadcrumb-item active">
-                                <i class="fas fa-map me-1"></i>
-                                نقشه ایران
-                            </li>
-                        </ol>
-                    </nav>
+                    <nav aria-label="breadcrumb"><ol class="breadcrumb m-0" id="breadcrumb">...</ol></nav>
                 </div>
             </div>
         </div>
 
         <div class="row">
             <div class="col-md-3">
-                <div class="card shadow-sm">
-                    <div class="card-header">
-                        <h5 class="card-title mb-0">
-                            <i class="fas fa-sitemap me-2"></i> 
-                            آمار و راهنما
-                        </h5>
+                <div class="card shadow-sm sidebar-card">
+                    <div class="sidebar-header">
+                        <img src="{{ url_for('static', filename='images/oghaf.png') }}" alt="آرم اوقاف">
+                        <h5 class="mt-2 mb-0">سامانه جامع املاک</h5>
                     </div>
+                    
                     <div class="card-body">
-                        
                         <button class="btn btn-outline-secondary w-100 mb-3" id="backBtn" style="display: none;">
-                            <i class="fas fa-arrow-right me-2"></i>
-                            بازگشت به سطح قبل
+                            <i class="fas fa-arrow-right me-2"></i> بازگشت
                         </button>
                         
-                        <div id="statsPanel">
-                            <h6 class="text-muted">آمار کلی کشور</h6>
-                            <div class="stats-loading text-center">
-                                <div class="spinner-border spinner-border-sm" role="status"></div>
-                                <span class="ms-2">در حال بارگذاری...</span>
-                            </div>
+                        <div class="lost-revenue-box mb-3">
+                            <h6 class="text-muted mb-1">برآورد درآمد از دست رفته</h6>
+                            <div class="value" id="lostRevenueValue">-</div>
                         </div>
+
+                        <h6 class="text-muted">جستجوی سریع</h6>
+                        <div class="input-group mb-3">
+                            <input type="text" class="form-control" placeholder="جستجو در جدول..." id="tableSearchInput">
+                            <button class="btn btn-outline-primary" id="tableSearchBtn"><i class="fas fa-search"></i></button>
+                        </div>
+                        <a href="#" id="advancedSearchBtn">جستجوی پیشرفته...</a>
                         
-                        <div class="mt-4">
-                            <hr>
-                            <h6 class="text-muted">راهنمای وضعیت اسناد</h6>
-                            <div class="legend-item">
-                                <span class="legend-color bg-success"></span>
-                                سند تک برگ
+                        <hr>
+
+                        <div id="charts-section">
+                            <h6 class="text-muted" id="chartTitle1">آمار اسناد (بر اساس تعداد)</h6>
+                            <div class="chart-container">
+                                <canvas id="chart1"></canvas>
                             </div>
-                            <div class="legend-item">
-                                <span class="legend-color bg-warning"></span>
-                                سند دفترچه‌ای
-                            </div>
-                            <div class="legend-item">
-                                <span class="legend-color bg-danger"></span>
-                                فاقد سند
+                            <h6 class="text-muted" id="chartTitle2">آمار اسناد (بر اساس مساحت)</h6>
+                            <div class="chart-container">
+                                <canvas id="chart2"></canvas>
                             </div>
                         </div>
+
+                        <div id="statsPanel" class="mt-3"></div>
                     </div>
                 </div>
             </div>
             
             <div class="col-md-9">
-                <div class="row">
-                    <div class="col-12 mb-3">
-                        <div class="card shadow-sm">
-                            <div class="card-header">
-                                <h5 class="card-title mb-0" id="mapTitle">
-                                    <i class="fas fa-map-marked-alt me-2"></i>
-                                    نقشه ایران - تقسیمات کشوری
-                                </h5>
-                            </div>
-                            <div class="card-body p-0">
-                                <div id="map" style="height: 550px; width: 100%;"></div>
-                            </div>
-                        </div>
+                <div class="card shadow-sm mb-3">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0" id="tableTitle"><i class="fas fa-list-ul me-2"></i>جدول اطلاعات</h5>
                     </div>
-                    
-                    <div class="col-12">
-                        <div class="card shadow-sm">
-                            <div class="card-header">
-                                <h5 class="card-title mb-0" id="tableTitle">
-                                    <i class="fas fa-list-ul me-2"></i>
-                                    جدول اطلاعات
-                                </h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="table-responsive">
-                                    <table class="table table-striped table-hover" id="dataTable">
-                                        <thead class="table-dark">
-                                            <tr id="tableHeaders">
-                                                </tr>
-                                        </thead>
-                                        <tbody id="tableBody">
-                                            </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="card-body">
+                        <table class="table table-striped table-hover display" id="mainDataTable">
+                            <thead class="table-dark">
+                                </thead>
+                            <tbody>
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0" id="mapTitle"><i class="fas fa-map-marked-alt me-2"></i>نقشه پراکندگی</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="map" style="height: 550px; width: 100%;"></div>
                     </div>
                 </div>
             </div>
@@ -148,14 +134,6 @@
             </div>
         </div>
     </div>
-    
-    <div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                ... </div>
-        </div>
-    </div>
-
 
     <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
     
@@ -163,5 +141,14 @@
     
     <script src="{{ url_for('static', filename='js/leaflet.js') }}"></script>
     
+    <script src="{{ url_for('static', filename='js/chart.umd.min.js') }}"></script>
+    
+    <script src="{{ url_for('static', filename='js/jquery.dataTables.min.js') }}"></script>
+    
+    <script src="{{ url_for('static', filename='js/dataTables.buttons.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/jszip.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/buttons.html5.min.js') }}"></script>
+    
     <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 </body>
+</html>
