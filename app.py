@@ -1,249 +1,106 @@
-from flask import Flask, render_template, jsonify, request, send_from_directory
-import json
+from flask import Flask, render_template, jsonify
+import sqlite3
 
 app = Flask(__name__)
 
-# Sample data for Oghaf management system
-SAMPLE_DATA = {
-    "provinces": {
-        "tehran": {
-            "name": "تهران",
-            "center": [35.6892, 51.3890],
-            "stats": {
-                "single_sheet_count": 1250,
-                "single_sheet_area": 45000,
-                "booklet_count": 890,
-                "booklet_area": 32000,
-                "no_document_count": 340,
-                "no_document_area": "نامشخص"
-            },
-            "cities": {
-                "tehran_city": {
-                    "name": "تهران",
-                    "center": [35.6892, 51.3890],
-                    "stats": {
-                        "single_sheet_count": 850,
-                        "single_sheet_area": 30000,
-                        "booklet_count": 620,
-                        "booklet_area": 22000,
-                        "no_document_count": 240,
-                        "no_document_area": "نامشخص"
-                    },
-                    "endowments": {
-                        "masjed_jameh": {
-                            "name": "مسجد جامع تهران",
-                            "properties_count": 15,
-                            "type": "متصرفی",
-                            "total_income": 2500000000,
-                            "properties": {
-                                "shop_1": {
-                                    "title": "مغازه شماره 1",
-                                    "type": "تجاری",
-                                    "status": "فعال",
-                                    "tenant": "احمد رضایی",
-                                    "lease_status": "دارای اجاره نامه",
-                                    "lease_expiry": "1403/12/29"
-                                },
-                                "shop_2": {
-                                    "title": "مغازه شماره 2",
-                                    "type": "تجاری",
-                                    "status": "غیرفعال",
-                                    "tenant": "خالی",
-                                    "lease_status": "فاقد اجاره نامه",
-                                    "lease_expiry": "-"
-                                },
-                                "apartment_1": {
-                                    "title": "آپارتمان مسکونی 1",
-                                    "type": "مسکونی",
-                                    "status": "فعال",
-                                    "tenant": "فاطمه احمدی",
-                                    "lease_status": "دارای اجاره نامه",
-                                    "lease_expiry": "1404/06/15"
-                                }
-                            }
-                        },
-                        "madrese_khan": {
-                            "name": "مدرسه خان",
-                            "properties_count": 8,
-                            "type": "غیرمتصرفی",
-                            "total_income": 800000000,
-                            "properties": {
-                                "classroom_1": {
-                                    "title": "کلاس درس 1",
-                                    "type": "آموزشی",
-                                    "status": "فعال",
-                                    "tenant": "موسسه آموزشی نور",
-                                    "lease_status": "دارای اجاره نامه",
-                                    "lease_expiry": "1404/03/20"
-                                },
-                                "library": {
-                                    "title": "کتابخانه",
-                                    "type": "فرهنگی",
-                                    "status": "فعال",
-                                    "tenant": "اداره فرهنگ",
-                                    "lease_status": "فاقد اجاره نامه",
-                                    "lease_expiry": "-"
-                                }
-                            }
-                        }
-                    }
-                },
-                "karaj": {
-                    "name": "کرج",
-                    "center": [35.8327, 50.9916],
-                    "stats": {
-                        "single_sheet_count": 400,
-                        "single_sheet_area": 15000,
-                        "booklet_count": 270,
-                        "booklet_area": 10000,
-                        "no_document_count": 100,
-                        "no_document_area": "نامشخص"
-                    },
-                    "endowments": {
-                        "masjed_karaj": {
-                            "name": "مسجد مرکزی کرج",
-                            "properties_count": 12,
-                            "type": "متصرفی",
-                            "total_income": 1800000000,
-                            "properties": {}
-                        }
-                    }
-                }
-            }
-        },
-        "isfahan": {
-            "name": "اصفهان",
-            "center": [32.6546, 51.6680],
-            "stats": {
-                "single_sheet_count": 980,
-                "single_sheet_area": 35000,
-                "booklet_count": 720,
-                "booklet_area": 28000,
-                "no_document_count": 290,
-                "no_document_area": "نامشخص"
-            },
-            "cities": {
-                "isfahan_city": {
-                    "name": "اصفهان",
-                    "center": [32.6546, 51.6680],
-                    "stats": {
-                        "single_sheet_count": 650,
-                        "single_sheet_area": 23000,
-                        "booklet_count": 480,
-                        "booklet_area": 18000,
-                        "no_document_count": 190,
-                        "no_document_area": "نامشخص"
-                    },
-                    "endowments": {
-                        "masjed_shah": {
-                            "name": "مسجد شاه",
-                            "properties_count": 25,
-                            "type": "متصرفی",
-                            "total_income": 4200000000,
-                            "properties": {}
-                        }
-                    }
-                }
-            }
-        },
-        "fars": {
-            "name": "فارس",
-            "center": [29.5918, 52.5837],
-            "stats": {
-                "single_sheet_count": 750,
-                "single_sheet_area": 28000,
-                "booklet_count": 540,
-                "booklet_area": 21000,
-                "no_document_count": 220,
-                "no_document_area": "نامشخص"
-            },
-            "cities": {
-                "shiraz": {
-                    "name": "شیراز",
-                    "center": [29.5918, 52.5837],
-                    "stats": {
-                        "single_sheet_count": 500,
-                        "single_sheet_area": 18000,
-                        "booklet_count": 360,
-                        "booklet_area": 14000,
-                        "no_document_count": 150,
-                        "no_document_area": "نامشخص"
-                    },
-                    "endowments": {
-                        "aramgah_hafez": {
-                            "name": "آرامگاه حافظ",
-                            "properties_count": 18,
-                            "type": "غیرمتصرفی",
-                            "total_income": 3100000000,
-                            "properties": {}
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
+# نام فایل دیتابیس
+DATABASE_NAME = 'oqaf.db'
+
+def get_db_connection():
+    """
+    اتصال به دیتابیس SQLite را برقرار می‌کند.
+    این تابع یک اتصال باز می‌کند که ردیف‌ها را به صورت دیکشنری برمی‌گرداند.
+    """
+    conn = sqlite3.connect(DATABASE_NAME)
+    # این خط باعث می‌شود نتایج کوئری به جای تاپل، به صورت دیکشنری برگردند
+    conn.row_factory = sqlite3.Row
+    return conn
 
 @app.route('/')
 def index():
+    """
+    صفحه اصلی داشبورد را رندر می‌کند.
+    """
+    # فایل dashboard.html شما را رندر می‌کند
     return render_template('dashboard.html')
-
-@app.route('/test_simple.html')
-def test_simple():
-    return send_from_directory('.', 'test_simple.html')
 
 @app.route('/api/provinces')
 def get_provinces():
-    """Get all provinces data"""
-    return jsonify(SAMPLE_DATA["provinces"])
+    """
+    لیست تمام استان‌ها به همراه آمار agregated (تجمیعی) اسناد را برمی‌گرداند.
+    آمار هر استان از مجموع آمار شهرستان‌های آن استان محاسبه می‌شود.
+    """
+    conn = get_db_connection()
+    # این کوئری SQL آمار اسناد را از شهرستان‌ها جمع‌بندی کرده و به استان‌ها متصل می‌کند
+    query = """
+        SELECT
+            p.id, p.name, p.lat, p.lng,
+            IFNULL(SUM(c.s_takbarg_c), 0) AS single_sheet_count,
+            IFNULL(SUM(c.s_takbarg_a), 0) AS single_sheet_area,
+            IFNULL(SUM(c.s_daftarchei_c), 0) AS booklet_count,
+            IFNULL(SUM(c.s_daftarchei_a), 0) AS booklet_area,
+            IFNULL(SUM(c.s_nosand_c), 0) AS no_document_count
+        FROM provinces p
+        LEFT JOIN counties c ON p.id = c.province_id
+        GROUP BY p.id, p.name, p.lat, p.lng
+        ORDER BY p.name;
+    """
+    provinces = conn.execute(query).fetchall()
+    conn.close()
+    
+    # تبدیل ردیف‌های SQLite به لیست دیکشنری استاندارد
+    return jsonify([dict(row) for row in provinces])
 
-@app.route('/api/province/<province_id>')
-def get_province(province_id):
-    """Get specific province data"""
-    if province_id in SAMPLE_DATA["provinces"]:
-        return jsonify(SAMPLE_DATA["provinces"][province_id])
-    return jsonify({"error": "Province not found"}), 404
-
-@app.route('/api/province/<province_id>/cities')
+@app.route('/api/province/<int:province_id>/cities')
 def get_cities(province_id):
-    """Get cities in a province"""
-    if province_id in SAMPLE_DATA["provinces"]:
-        return jsonify(SAMPLE_DATA["provinces"][province_id]["cities"])
-    return jsonify({"error": "Province not found"}), 404
+    """
+    لیست شهرستان‌های یک استان خاص را به همراه آمار اسناد آن‌ها برمی‌گرداند.
+    """
+    conn = get_db_connection()
+    # آمار در خود جدول شهرستان‌ها ذخیره شده است
+    query = "SELECT * FROM counties WHERE province_id = ? ORDER BY name;"
+    cities = conn.execute(query, (province_id,)).fetchall()
+    conn.close()
+    
+    if not cities:
+        return jsonify({"error": "Province not found or has no cities"}), 404
+        
+    return jsonify([dict(row) for row in cities])
 
-@app.route('/api/province/<province_id>/city/<city_id>')
-def get_city(province_id, city_id):
-    """Get specific city data"""
-    if (province_id in SAMPLE_DATA["provinces"] and 
-        city_id in SAMPLE_DATA["provinces"][province_id]["cities"]):
-        return jsonify(SAMPLE_DATA["provinces"][province_id]["cities"][city_id])
-    return jsonify({"error": "City not found"}), 404
+@app.route('/api/province/<int:province_id>/city/<int:city_id>/endowments')
+def get_endowments(city_id, province_id):
+    """
+    لیست موقوفات یک شهرستان خاص را برمی‌گرداند.
+    (پارامتر province_id در کوئری استفاده نمی‌شود اما برای ساختار URL خوب است)
+    """
+    conn = get_db_connection()
+    query = "SELECT * FROM endowments WHERE county_id = ? ORDER BY name;"
+    endowments = conn.execute(query, (city_id,)).fetchall()
+    conn.close()
+    
+    if not endowments:
+        return jsonify({"error": "City not found or has no endowments"}), 404
 
-@app.route('/api/province/<province_id>/city/<city_id>/endowments')
-def get_endowments(province_id, city_id):
-    """Get endowments in a city"""
-    if (province_id in SAMPLE_DATA["provinces"] and 
-        city_id in SAMPLE_DATA["provinces"][province_id]["cities"]):
-        return jsonify(SAMPLE_DATA["provinces"][province_id]["cities"][city_id]["endowments"])
-    return jsonify({"error": "City not found"}), 404
+    return jsonify([dict(row) for row in endowments])
 
-@app.route('/api/province/<province_id>/city/<city_id>/endowment/<endowment_id>')
-def get_endowment(province_id, city_id, endowment_id):
-    """Get specific endowment data"""
-    try:
-        endowment = SAMPLE_DATA["provinces"][province_id]["cities"][city_id]["endowments"][endowment_id]
-        return jsonify(endowment)
-    except KeyError:
-        return jsonify({"error": "Endowment not found"}), 404
+@app.route('/api/province/<int:province_id>/city/<int:city_id>/endowment/<int:endowment_id>/properties')
+def get_properties(endowment_id, province_id, city_id):
+    """
+    لیست تمام رقبات (properties) یک موقوفه خاص را برمی‌گرداند.
+    """
+    conn = get_db_connection()
+    query = "SELECT * FROM properties WHERE endowment_id = ? ORDER BY title;"
+    properties = conn.execute(query, (endowment_id,)).fetchall()
+    conn.close()
+    
+    if not properties:
+        return jsonify({"error": "Endowment not found or has no properties"}), 404
 
-@app.route('/api/province/<province_id>/city/<city_id>/endowment/<endowment_id>/properties')
-def get_properties(province_id, city_id, endowment_id):
-    """Get properties of an endowment"""
-    try:
-        properties = SAMPLE_DATA["provinces"][province_id]["cities"][city_id]["endowments"][endowment_id]["properties"]
-        return jsonify(properties)
-    except KeyError:
-        return jsonify({"error": "Endowment not found"}), 404
+    return jsonify([dict(row) for row in properties])
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    # قبل از اجرای برنامه، مطمئن شوید که فایل generate_db.py را اجرا کرده‌اید
+    print("--- سرور در حال اجرا است ---")
+    print("مطمئن شوید که فایل oqaf.db در کنار این فایل وجود دارد.")
+    print("اگر وجود ندارد، ابتدا فایل generate_db.py را اجرا کنید.")
+    app.run(debug=True, port=5000)

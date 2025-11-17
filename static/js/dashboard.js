@@ -1,222 +1,243 @@
-// Oghaf Management Dashboard - Main JavaScript File
+// Oghaf Management Dashboard - Main JavaScript File (v2 - SQLite Ready)
 
 $(document).ready(function() {
-    // Global variables
-    let map;
-    let currentLevel = 'country'; // country, province, city, endowment
-    let currentData = {};
-    let navigationStack = [];
-    let markers = [];
+    // --- متغیرهای سراسری ---
+    let map; // نمونه نقشه Leaflet
+    let currentLevel = 'country'; // سطح فعلی نمایش: country, province, city, endowment
+    let navigationStack = []; // پشته‌ای برای مدیریت ناوبری (دکمه بازگشت)
+    let markers = []; // آرایه‌ای برای نگهداری مارکرهای فعلی روی نقشه
 
-    // Initialize the dashboard
-    initDashboard();
+    // --- توابع اصلی ---
 
+    /**
+     * تابع اصلی برای راه‌اندازی داشبورد
+     * نقشه را مقداردهی اولیه کرده و داده‌های سطح کشور را بارگذاری می‌کند.
+     */
     function initDashboard() {
-        console.log('Initializing dashboard...');
-        try {
-            initMap();
-            console.log('Map initialized');
-            loadCountryData();
-            console.log('Loading country data...');
-            setupEventHandlers();
-            console.log('Event handlers set up');
-        } catch (error) {
-            console.error('Error in initDashboard:', error);
-        }
+        initMap();
+        loadCountryData();
+        setupEventHandlers();
     }
 
-    // Initialize map
+    /**
+     * نقشه Leaflet را با مرکزیت ایران راه‌اندازی می‌کند.
+     */
     function initMap() {
-        console.log('Initializing map...');
         try {
-            map = L.map('map').setView([32.4279, 53.6880], 5); // Center of Iran
-
+            map = L.map('map').setView([32.4279, 53.6880], 5); // مرکز ایران، زوم ۵
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© OpenStreetMap contributors'
             }).addTo(map);
-
-            // Add Iran boundary (simplified)
-            addIranBoundary();
-            console.log('Map initialized successfully');
         } catch (error) {
             console.error('Error initializing map:', error);
         }
     }
 
-    // Add Iran boundary to map
-    function addIranBoundary() {
-        // Simplified Iran boundary coordinates
-        const iranBounds = [
-            [44.1092, 25.0782], // Southwest
-            [63.3166, 39.7816] // Northeast
-        ];
+    /**
+     * رویدادهای کلیک اصلی برنامه را تنظیم می‌کند.
+     * از event delegation برای مدیریت کلیک‌ها روی دکمه‌هایی که بعداً ساخته می‌شوند، استفاده می‌کند.
+     */
+    function setupEventHandlers() {
+        // دکمه بازگشت
+        $('#backBtn').click(handleBackNavigation);
 
-        // Add a rectangle to represent Iran boundary
-        L.rectangle(iranBounds, {
-            color: '#0d6efd',
-            weight: 2,
-            fillOpacity: 0.1
-        }).addTo(map);
+        // --- Event Delegation برای دکمه‌های جدول ---
+        // (این دکمه‌ها به صورت پویا ساخته می‌شوند)
+        $('#dataTable').on('click', '.btn-view-cities', function() {
+            const provinceId = $(this).data('id');
+            const provinceName = $(this).data('name');
+            loadCityData(provinceId, provinceName);
+        });
+
+        $('#dataTable').on('click', '.btn-view-endowments', function() {
+            const provinceId = $(this).data('province-id');
+            const cityId = $(this).data('id');
+            const cityName = $(this).data('name');
+            loadEndowmentData(provinceId, cityId, cityName);
+        });
+
+        $('#dataTable').on('click', '.btn-view-properties', function() {
+            const provinceId = $(this).data('province-id');
+            const cityId = $(this).data('city-id');
+            const endowmentId = $(this).data('id');
+            const endowmentName = $(this).data('name');
+            loadPropertyData(provinceId, cityId, endowmentId, endowmentName);
+        });
+
+        // --- Event Delegation برای دکمه‌های پاپ‌آپ نقشه ---
+        // (این دکمه‌ها نیز پویا هستند)
+        $('#map').on('click', '.popup-btn-cities', function() {
+            const provinceId = $(this).data('id');
+            const provinceName = $(this).data('name');
+            loadCityData(provinceId, provinceName);
+        });
+
+        $('#map').on('click', '.popup-btn-endowments', function() {
+            const provinceId = $(this).data('province-id');
+            const cityId = $(this).data('id');
+            const cityName = $(this).data('name');
+            loadEndowmentData(provinceId, cityId, cityName);
+        });
     }
 
-    // Load country level data
+    // --- توابع بارگذاری داده (سطح کشور) ---
+
+    /**
+     * داده‌های سطح کشور (لیست استان‌ها و آمار) را از API بارگذاری می‌کند.
+     */
     function loadCountryData() {
-        console.log('Loading country data...');
         showLoading();
+        currentLevel = 'country';
+        navigationStack = []; // پشته ناوبری ریست می‌شود
 
         $.ajax({
             url: '/api/provinces',
             method: 'GET',
             success: function(data) {
-                console.log('Data received:', data);
-                currentData = data;
-                currentLevel = 'country';
+                // API یک آرایه برمی‌گرداند
                 displayProvinces(data);
                 updateStatsPanel(calculateCountryStats(data));
-                updateBreadcrumb([{
-                    name: 'نقشه ایران',
-                    level: 'country'
-                }]);
-                console.log('Country data loaded successfully');
+                updateBreadcrumb(); // بدون آرگومان یعنی سطح ریشه
             },
-            error: function(xhr, status, error) {
-                console.error('Error loading data:', error);
-                showAlert('خطا در بارگذاری اطلاعات: ' + error, 'danger');
-            },
-            complete: function() {
-                console.log('Request completed');
-                hideLoading();
-            }
+            error: handleAjaxError,
+            complete: hideLoading
         });
     }
 
-    // Display provinces on map and table
+    /**
+     * استان‌ها را در جدول و روی نقشه نمایش می‌دهد.
+     * @param {Array} provinces - آرایه‌ای از آبجکت‌های استان.
+     */
     function displayProvinces(provinces) {
-        console.log('Displaying provinces:', provinces);
-        try {
-            clearMarkers();
+        clearMap();
+        map.setView([32.4279, 53.6880], 5); // ریست کردن زوم نقشه
 
-            const tableHeaders = `
-                <th>نام استان</th>
-                <th>سند تک برگ (تعداد)</th>
-                <th>سند تک برگ (مساحت)</th>
-                <th>سند دفترچه‌ای (تعداد)</th>
-                <th>سند دفترچه‌ای (مساحت)</th>
-                <th>فاقد سند (تعداد)</th>
-                <th>عملیات</th>
+        const tableHeaders = `
+            <th>نام استان</th>
+            <th>سند تک برگ (تعداد)</th>
+            <th>سند تک برگ (مساحت)</th>
+            <th>سند دفترچه‌ای (تعداد)</th>
+            <th>سند دفترچه‌ای (مساحت)</th>
+            <th>فاقد سند (تعداد)</th>
+            <th>عملیات</th>
+        `;
+
+        let tableRows = '';
+        provinces.forEach(province => {
+            // آمار از API می‌آید (در app.py محاسبه شده)
+            const stats = {
+                single_sheet_count: province.single_sheet_count,
+                single_sheet_area: province.single_sheet_area,
+                booklet_count: province.booklet_count,
+                booklet_area: province.booklet_area,
+                no_document_count: province.no_document_count
+            };
+
+            // افزودن مارکر به نقشه
+            const popupContent = createProvincePopup(province, stats);
+            addMarker([province.lat, province.lng], popupContent);
+
+            // افزودن ردیف به جدول
+            tableRows += `
+                <tr>
+                    <td><strong>${province.name}</strong></td>
+                    <td class="number-format">${formatNumber(stats.single_sheet_count)}</td>
+                    <td class="number-format">${formatNumber(stats.single_sheet_area)} م²</td>
+                    <td class="number-format">${formatNumber(stats.booklet_count)}</td>
+                    <td class="number-format">${formatNumber(stats.booklet_area)} م²</td>
+                    <td class="number-format">${formatNumber(stats.no_document_count)}</td>
+                    <td>
+                        <button class="btn btn-primary btn-sm btn-view-cities" 
+                                data-id="${province.id}" 
+                                data-name="${province.name}">
+                            <i class="fas fa-eye me-1"></i>مشاهده شهرستان‌ها
+                        </button>
+                    </td>
+                </tr>
             `;
+        });
 
-            $('#tableHeaders').html(tableHeaders);
-            $('#tableTitle').html('<i class="fas fa-table me-2"></i>جدول استان‌ها');
-            $('#mapTitle').html('<i class="fas fa-map-marked-alt me-2"></i>نقشه ایران - تقسیمات کشوری');
-
-            let tableRows = '';
-
-            Object.keys(provinces).forEach(provinceId => {
-                const province = provinces[provinceId];
-                const stats = province.stats;
-                console.log('Processing province:', provinceId, province);
-
-                // Add marker to map
-                try {
-                    const marker = L.marker(province.center).addTo(map);
-                    const popupContent = createProvincePopup(province, provinceId);
-                    marker.bindPopup(popupContent);
-                    markers.push(marker);
-                } catch (markerError) {
-                    console.error('Error adding marker for province:', provinceId, markerError);
-                }
-
-                // Add table row
-                tableRows += `
-                    <tr class="province-row" data-province="${provinceId}">
-                        <td><strong>${province.name}</strong></td>
-                        <td class="number-format">${formatNumber(stats.single_sheet_count)}</td>
-                        <td class="number-format">${formatNumber(stats.single_sheet_area)} متر مربع</td>
-                        <td class="number-format">${formatNumber(stats.booklet_count)}</td>
-                        <td class="number-format">${formatNumber(stats.booklet_area)} متر مربع</td>
-                        <td class="number-format">${formatNumber(stats.no_document_count)}</td>
-                        <td>
-                            <button class="btn btn-province btn-sm" data-province="${provinceId}">
-                                <i class="fas fa-eye me-1"></i>مشاهده شهرستان‌ها
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            });
-
-            $('#tableBody').html(tableRows);
-            console.log('Provinces displayed successfully');
-        } catch (error) {
-            console.error('Error displaying provinces:', error);
-        }
+        $('#tableHeaders').html(tableHeaders);
+        $('#tableBody').html(tableRows);
+        $('#tableTitle').html('<i class="fas fa-table me-2"></i>جدول استان‌ها');
+        $('#mapTitle').html('<i class="fas fa-map-marked-alt me-2"></i>نقشه ایران - استان‌ها');
     }
 
-    // Create province popup content
-    function createProvincePopup(province, provinceId) {
-        const stats = province.stats;
+    /**
+     * محتوای HTML پاپ‌آپ یک استان را می‌سازد.
+     * @param {Object} province - آبجکت استان.
+     * @param {Object} stats - آبجکت آمار استان.
+     * @returns {string} - رشته HTML.
+     */
+    function createProvincePopup(province, stats) {
         return `
-            <div style="min-width: 250px;">
+            <div style="min-width: 250px; text-align: right; direction: rtl;">
                 <h6>${province.name}</h6>
                 <table class="stats-table">
                     <tr><td>سند تک برگ:</td><td>${formatNumber(stats.single_sheet_count)} (${formatNumber(stats.single_sheet_area)} م²)</td></tr>
                     <tr><td>سند دفترچه‌ای:</td><td>${formatNumber(stats.booklet_count)} (${formatNumber(stats.booklet_area)} م²)</td></tr>
                     <tr><td>فاقد سند:</td><td>${formatNumber(stats.no_document_count)}</td></tr>
                 </table>
-                <button class="btn btn-primary btn-sm mt-2 w-100" onclick="viewProvince('${provinceId}')">
+                <button class="btn btn-primary btn-sm mt-2 w-100 popup-btn-cities" 
+                        data-id="${province.id}" 
+                        data-name="${province.name}">
                     <i class="fas fa-arrow-left me-1"></i>مشاهده شهرستان‌ها
                 </button>
             </div>
         `;
     }
 
-    // View province cities
-    window.viewProvince = function(provinceId) {
+    // --- توابع بارگذاری داده (سطح شهرستان) ---
+
+    /**
+     * داده‌های شهرستان‌های یک استان خاص را بارگذاری می‌کند.
+     * @param {number} provinceId - ID استان.
+     * @param {string} provinceName - نام استان (برای ناوبری).
+     */
+    function loadCityData(provinceId, provinceName) {
         showLoading();
+        // وضعیت فعلی را قبل از رفتن به سطح بعد، در پشته ذخیره کن
+        navigationStack.push({
+            level: currentLevel,
+            loadFunction: loadCountryData
+        });
+        currentLevel = 'province';
 
         $.ajax({
             url: `/api/province/${provinceId}/cities`,
             method: 'GET',
             success: function(data) {
-                navigationStack.push({
-                    level: 'country',
-                    data: currentData
-                });
-                currentData = data;
-                currentLevel = 'province';
-
-                const provinceName = Object.values(currentData)[0] ?
-                    Object.values(currentData)[0].name.split(' ')[0] : 'استان';
-
                 displayCities(data, provinceId);
-                updateBreadcrumb([{
-                        name: 'نقشه ایران',
-                        level: 'country'
-                    },
-                    {
-                        name: `استان ${provinceName}`,
-                        level: 'province'
-                    }
-                ]);
+                updateStatsPanel(calculateCityStats(data, provinceName));
+                updateBreadcrumb({
+                    name: 'ایران',
+                    loadFunction: loadCountryData
+                }, {
+                    name: provinceName
+                });
 
-                // Update map view
-                if (Object.keys(data).length > 0) {
-                    const firstCity = Object.values(data)[0];
-                    map.setView(firstCity.center, 8);
+                // زوم روی استان
+                if (data.length > 0) {
+                    // محاسبه مرکز شهرستان‌ها برای زوم بهتر
+                    const latitudes = data.map(c => c.lat);
+                    const longitudes = data.map(c => c.lng);
+                    const centerLat = latitudes.reduce((a, b) => a + b, 0) / latitudes.length;
+                    const centerLng = longitudes.reduce((a, b) => a + b, 0) / longitudes.length;
+                    map.setView([centerLat, centerLng], 8);
                 }
             },
-            error: function() {
-                showAlert('خطا در بارگذاری اطلاعات شهرستان‌ها', 'danger');
-            },
-            complete: function() {
-                hideLoading();
-            }
+            error: handleAjaxError,
+            complete: hideLoading
         });
-    };
+    }
 
-    // Display cities
+    /**
+     * شهرستان‌ها را در جدول و روی نقشه نمایش می‌دهد.
+     * @param {Array} cities - آرایه‌ای از آبجکت‌های شهرستان.
+     * @param {number} provinceId - ID استان والد.
+     */
     function displayCities(cities, provinceId) {
-        clearMarkers();
+        clearMap();
 
         const tableHeaders = `
             <th>نام شهرستان</th>
@@ -228,33 +249,33 @@ $(document).ready(function() {
             <th>عملیات</th>
         `;
 
-        $('#tableHeaders').html(tableHeaders);
-        $('#tableTitle').html('<i class="fas fa-table me-2"></i>جدول شهرستان‌ها');
-        $('#mapTitle').html('<i class="fas fa-map-marked-alt me-2"></i>نقشه شهرستان‌ها');
-
         let tableRows = '';
+        cities.forEach(city => {
+            // آمار مستقیماً از دیتابیس (جدول counties) می‌آید
+            const stats = {
+                single_sheet_count: city.s_takbarg_c,
+                single_sheet_area: city.s_takbarg_a,
+                booklet_count: city.s_daftarchei_c,
+                booklet_area: city.s_daftarchei_a,
+                no_document_count: city.s_nosand_c
+            };
 
-        Object.keys(cities).forEach(cityId => {
-            const city = cities[cityId];
-            const stats = city.stats;
+            const popupContent = createCityPopup(city, stats, provinceId);
+            addMarker([city.lat, city.lng], popupContent);
 
-            // Add marker to map
-            const marker = L.marker(city.center).addTo(map);
-            const popupContent = createCityPopup(city, cityId, provinceId);
-            marker.bindPopup(popupContent);
-            markers.push(marker);
-
-            // Add table row
             tableRows += `
-                <tr class="city-row" data-city="${cityId}" data-province="${provinceId}">
+                <tr>
                     <td><strong>${city.name}</strong></td>
                     <td class="number-format">${formatNumber(stats.single_sheet_count)}</td>
-                    <td class="number-format">${formatNumber(stats.single_sheet_area)} متر مربع</td>
+                    <td class="number-format">${formatNumber(stats.single_sheet_area)} م²</td>
                     <td class="number-format">${formatNumber(stats.booklet_count)}</td>
-                    <td class="number-format">${formatNumber(stats.booklet_area)} متر مربع</td>
+                    <td class="number-format">${formatNumber(stats.booklet_area)} م²</td>
                     <td class="number-format">${formatNumber(stats.no_document_count)}</td>
                     <td>
-                        <button class="btn btn-province btn-sm" data-city="${cityId}" data-province="${provinceId}">
+                        <button class="btn btn-success btn-sm btn-view-endowments" 
+                                data-id="${city.id}" 
+                                data-province-id="${provinceId}" 
+                                data-name="${city.name}">
                             <i class="fas fa-eye me-1"></i>مشاهده موقوفات
                         </button>
                     </td>
@@ -262,102 +283,100 @@ $(document).ready(function() {
             `;
         });
 
+        $('#tableHeaders').html(tableHeaders);
         $('#tableBody').html(tableRows);
-        updateStatsPanel(calculateCityStats(cities));
+        $('#tableTitle').html('<i class="fas fa-table me-2"></i>جدول شهرستان‌ها');
+        $('#mapTitle').html('<i class="fas fa-map-marked-alt me-2"></i>نقشه شهرستان‌ها');
     }
 
-    // Create city popup content
-    function createCityPopup(city, cityId, provinceId) {
-        const stats = city.stats;
+    /**
+     * محتوای HTML پاپ‌آپ یک شهرستان را می‌سازد.
+     */
+    function createCityPopup(city, stats, provinceId) {
         return `
-            <div style="min-width: 250px;">
+            <div style="min-width: 250px; text-align: right; direction: rtl;">
                 <h6>${city.name}</h6>
                 <table class="stats-table">
                     <tr><td>سند تک برگ:</td><td>${formatNumber(stats.single_sheet_count)} (${formatNumber(stats.single_sheet_area)} م²)</td></tr>
                     <tr><td>سند دفترچه‌ای:</td><td>${formatNumber(stats.booklet_count)} (${formatNumber(stats.booklet_area)} م²)</td></tr>
                     <tr><td>فاقد سند:</td><td>${formatNumber(stats.no_document_count)}</td></tr>
                 </table>
-                <button class="btn btn-primary btn-sm mt-2 w-100" onclick="viewCity('${provinceId}', '${cityId}')">
+                <button class="btn btn-success btn-sm mt-2 w-100 popup-btn-endowments" 
+                        data-id="${city.id}" 
+                        data-province-id="${provinceId}" 
+                        data-name="${city.name}">
                     <i class="fas fa-arrow-left me-1"></i>مشاهده موقوفات
                 </button>
             </div>
         `;
     }
 
-    // View city endowments
-    window.viewCity = function(provinceId, cityId) {
+    // --- توابع بارگذاری داده (سطح موقوفه) ---
+
+    /**
+     * داده‌های موقوفات یک شهرستان خاص را بارگذاری می‌کند.
+     */
+    function loadEndowmentData(provinceId, cityId, cityName) {
         showLoading();
+        navigationStack.push({
+            level: currentLevel,
+            loadFunction: () => loadCityData(provinceId, navigationStack[navigationStack.length - 1].name) // تابع بازگشت به شهرستان
+        });
+        currentLevel = 'city';
 
         $.ajax({
             url: `/api/province/${provinceId}/city/${cityId}/endowments`,
             method: 'GET',
             success: function(data) {
-                navigationStack.push({
-                    level: 'province',
-                    data: currentData
-                });
-                currentData = data;
-                currentLevel = 'city';
-
                 displayEndowments(data, provinceId, cityId);
-
-                const cityData = Object.values(navigationStack[navigationStack.length - 1].data)[cityId];
-                const cityName = cityData && cityData.name ? cityData.name : 'شهر';
-                updateBreadcrumb([{
-                        name: 'نقشه ایران',
-                        level: 'country'
-                    },
-                    {
-                        name: 'استان',
-                        level: 'province'
-                    },
-                    {
-                        name: cityName,
-                        level: 'city'
-                    }
-                ]);
+                updateStatsPanel(calculateEndowmentStats(data, cityName));
+                updateBreadcrumb({
+                    name: 'ایران',
+                    loadFunction: loadCountryData
+                }, {
+                    name: navigationStack[navigationStack.length - 1].name, // نام استان از پشته
+                    loadFunction: () => loadCityData(provinceId, navigationStack[navigationStack.length - 1].name)
+                }, {
+                    name: cityName
+                });
             },
-            error: function() {
-                showAlert('خطا در بارگذاری اطلاعات موقوفات', 'danger');
-            },
-            complete: function() {
-                hideLoading();
-            }
+            error: handleAjaxError,
+            complete: hideLoading
         });
-    };
+    }
 
-    // Display endowments
+    /**
+     * موقوفات را در جدول نمایش می‌دهد. (در این سطح مارکر نقشه نداریم)
+     */
     function displayEndowments(endowments, provinceId, cityId) {
-        clearMarkers();
+        clearMap(); // در سطح موقوفه، مارکرها را پاک می‌کنیم (چون مختصات ندارند)
 
         const tableHeaders = `
             <th>نام موقوفه</th>
+            <th>نیت واقف</th>
             <th>تعداد رقبات</th>
             <th>نوع موقوفه</th>
             <th>درآمد کل (ریال)</th>
             <th>عملیات</th>
         `;
 
-        $('#tableHeaders').html(tableHeaders);
-        $('#tableTitle').html('<i class="fas fa-table me-2"></i>جدول موقوفات');
-        $('#mapTitle').html('<i class="fas fa-map-marked-alt me-2"></i>موقعیت موقوفات');
-
         let tableRows = '';
-
-        Object.keys(endowments).forEach(endowmentId => {
-            const endowment = endowments[endowmentId];
-
-            // Add table row
+        endowments.forEach(endowment => {
             tableRows += `
-                <tr class="endowment-row" data-endowment="${endowmentId}" data-city="${cityId}" data-province="${provinceId}">
+                <tr>
                     <td><strong>${endowment.name}</strong></td>
-                    <td class="number-format">${formatNumber(endowment.properties_count)}</td>
+                    <td>${endowment.intent}</td>
+                    <td class="number-format">${formatNumber(endowment.raqabat_count)}</td>
                     <td>
                         <span class="badge ${endowment.type === 'متصرفی' ? 'bg-success' : 'bg-warning'}">${endowment.type}</span>
                     </td>
                     <td class="number-format">${formatNumber(endowment.total_income)}</td>
                     <td>
-                        <button class="btn btn-province btn-sm" data-endowment="${endowmentId}" data-city="${cityId}" data-province="${provinceId}">
+                        <button class="btn btn-warning btn-sm btn-view-properties" 
+                                data-id="${endowment.id}" 
+                                data-city-id="${cityId}" 
+                                data-province-id="${provinceId}" 
+                                data-name="${endowment.name}">
                             <i class="fas fa-eye me-1"></i>مشاهده رقبات
                         </button>
                     </td>
@@ -365,103 +384,97 @@ $(document).ready(function() {
             `;
         });
 
+        $('#tableHeaders').html(tableHeaders);
         $('#tableBody').html(tableRows);
-        updateStatsPanel(calculateEndowmentStats(endowments));
+        $('#tableTitle').html('<i class="fas fa-table me-2"></i>جدول موقوفات');
+        $('#mapTitle').html('<i class="fas fa-map-marked-alt me-2"></i>موقوفات شهرستان');
     }
 
-    // View endowment properties
-    window.viewEndowment = function(provinceId, cityId, endowmentId) {
+
+    // --- توابع بارگذاری داده (سطح رقبه) ---
+
+    /**
+     * داده‌های رقبات (Properties) یک موقوفه خاص را بارگذاری می‌کند.
+     */
+    function loadPropertyData(provinceId, cityId, endowmentId, endowmentName) {
         showLoading();
+        navigationStack.push({
+            level: currentLevel,
+            loadFunction: () => loadEndowmentData(provinceId, cityId, navigationStack[navigationStack.length - 1].name) // بازگشت به موقوفات
+        });
+        currentLevel = 'endowment';
 
         $.ajax({
             url: `/api/province/${provinceId}/city/${cityId}/endowment/${endowmentId}/properties`,
             method: 'GET',
             success: function(data) {
-                navigationStack.push({
-                    level: 'city',
-                    data: currentData
+                displayProperties(data);
+                updateStatsPanel(calculatePropertyStats(data, endowmentName));
+                updateBreadcrumb({
+                    name: 'ایران',
+                    loadFunction: loadCountryData
+                }, {
+                    name: '...', // نام استان (برای سادگی)
+                    loadFunction: () => loadCityData(provinceId, '...')
+                }, {
+                    name: navigationStack[navigationStack.length - 1].name, // نام شهرستان
+                    loadFunction: () => loadEndowmentData(provinceId, cityId, navigationStack[navigationStack.length - 1].name)
+                }, {
+                    name: endowmentName
                 });
-                currentData = data;
-                currentLevel = 'endowment';
-
-                displayProperties(data, provinceId, cityId, endowmentId);
-
-                const endowmentData = Object.values(navigationStack[navigationStack.length - 1].data)[endowmentId];
-                const endowmentName = endowmentData && endowmentData.name ? endowmentData.name : 'موقوفه';
-                updateBreadcrumb([{
-                        name: 'نقشه ایران',
-                        level: 'country'
-                    },
-                    {
-                        name: 'استان',
-                        level: 'province'
-                    },
-                    {
-                        name: 'شهر',
-                        level: 'city'
-                    },
-                    {
-                        name: endowmentName,
-                        level: 'endowment'
-                    }
-                ]);
             },
-            error: function() {
-                showAlert('خطا در بارگذاری اطلاعات رقبات', 'danger');
-            },
-            complete: function() {
-                hideLoading();
-            }
+            error: handleAjaxError,
+            complete: hideLoading
         });
-    };
+    }
 
-    // Display properties
+    /**
+     * رقبات را در جدول نمایش می‌دهد.
+     */
     function displayProperties(properties) {
-        clearMarkers();
+        clearMap();
 
         const tableHeaders = `
             <th>عنوان رقبه</th>
-            <th>نوع رقبه</th>
+            <th>کاربری</th>
             <th>وضعیت</th>
             <th>متصرف</th>
-            <th>وضعیت اجاره نامه</th>
+            <th>وضعیت اجاره</th>
             <th>تاریخ انقضا</th>
+            <th>مبلغ اجاره (ریال)</th>
         `;
 
-        $('#tableHeaders').html(tableHeaders);
-        $('#tableTitle').html('<i class="fas fa-table me-2"></i>جدول رقبات');
-        $('#mapTitle').html('<i class="fas fa-map-marked-alt me-2"></i>موقعیت رقبات');
-
         let tableRows = '';
-
-        Object.keys(properties).forEach(propertyId => {
-            const property = properties[propertyId];
-
+        properties.forEach(prop => {
             tableRows += `
                 <tr>
-                    <td><strong>${property.title}</strong></td>
-                    <td>${property.type}</td>
+                    <td><strong>${prop.title}</strong></td>
+                    <td>${prop.land_use}</td>
                     <td>
-                        <span class="status-${property.status === 'فعال' ? 'active' : 'inactive'}">
-                            ${property.status}
-                        </span>
+                        <span class="badge ${prop.status === 'فعال' ? 'bg-success' : 'bg-secondary'}">${prop.status}</span>
                     </td>
-                    <td>${property.tenant}</td>
+                    <td>${prop.user}</td>
                     <td>
-                        <span class="status-${property.lease_status === 'دارای اجاره نامه' ? 'has-lease' : 'no-lease'}">
-                            ${property.lease_status}
-                        </span>
+                        <span class="badge ${prop.lease_status === 'دارای اجاره نامه' ? 'bg-info' : 'bg-danger'}">${prop.lease_status}</span>
                     </td>
-                    <td class="number-format">${property.lease_expiry}</td>
+                    <td class="number-format">${prop.expiry_date}</td>
+                    <td class="number-format">${formatNumber(prop.lease_amount)}</td>
                 </tr>
             `;
         });
 
+        $('#tableHeaders').html(tableHeaders);
         $('#tableBody').html(tableRows);
-        updateStatsPanel(calculatePropertyStats(properties));
+        $('#tableTitle').html('<i class="fas fa-table me-2"></i>جدول رقبات');
+        $('#mapTitle').html('<i class="fas fa-map-marked-alt me-2"></i>رقبات موقوفه');
     }
 
-    // Calculate country statistics
+    // --- توابع کمکی و محاسباتی ---
+
+    /**
+     * آمار کلی سطح کشور را محاسبه می‌کند.
+     * @param {Array} provinces - آرایه استان‌ها.
+     */
     function calculateCountryStats(provinces) {
         let totalSingleSheet = 0,
             totalSingleSheetArea = 0;
@@ -469,148 +482,135 @@ $(document).ready(function() {
             totalBookletArea = 0;
         let totalNoDocument = 0;
 
-        Object.values(provinces).forEach(province => {
-            const stats = province.stats;
-            totalSingleSheet += stats.single_sheet_count;
-            totalSingleSheetArea += stats.single_sheet_area;
-            totalBooklet += stats.booklet_count;
-            totalBookletArea += stats.booklet_area;
-            totalNoDocument += stats.no_document_count;
+        provinces.forEach(p => {
+            totalSingleSheet += p.single_sheet_count;
+            totalSingleSheetArea += p.single_sheet_area;
+            totalBooklet += p.booklet_count;
+            totalBookletArea += p.booklet_area;
+            totalNoDocument += p.no_document_count;
         });
 
         return {
             title: 'آمار کلی کشور',
             items: [{
-                    label: 'موقوفات دارای سند تک برگ',
-                    value: `${formatNumber(totalSingleSheet)} (${formatNumber(totalSingleSheetArea)} م²)`
-                },
-                {
-                    label: 'موقوفات دارای سند دفترچه‌ای',
-                    value: `${formatNumber(totalBooklet)} (${formatNumber(totalBookletArea)} م²)`
-                },
-                {
-                    label: 'موقوفات فاقد سند',
-                    value: formatNumber(totalNoDocument)
-                },
-                {
-                    label: 'تعداد استان‌ها',
-                    value: Object.keys(provinces).length
-                }
-            ]
+                label: 'سند تک برگ',
+                value: `${formatNumber(totalSingleSheet)} (${formatNumber(totalSingleSheetArea)} م²)`
+            }, {
+                label: 'سند دفترچه‌ای',
+                value: `${formatNumber(totalBooklet)} (${formatNumber(totalBookletArea)} م²)`
+            }, {
+                label: 'فاقد سند',
+                value: formatNumber(totalNoDocument)
+            }, {
+                label: 'تعداد استان‌ها',
+                value: provinces.length
+            }]
         };
     }
 
-    // Calculate city statistics
-    function calculateCityStats(cities) {
+    /**
+     * آمار کلی سطح استان (مجموع شهرستان‌ها) را محاسبه می‌کند.
+     * @param {Array} cities - آرایه شهرستان‌ها.
+     * @param {string} provinceName - نام استان.
+     */
+    function calculateCityStats(cities, provinceName) {
         let totalSingleSheet = 0,
             totalSingleSheetArea = 0;
         let totalBooklet = 0,
             totalBookletArea = 0;
         let totalNoDocument = 0;
 
-        Object.values(cities).forEach(city => {
-            const stats = city.stats;
-            totalSingleSheet += stats.single_sheet_count;
-            totalSingleSheetArea += stats.single_sheet_area;
-            totalBooklet += stats.booklet_count;
-            totalBookletArea += stats.booklet_area;
-            totalNoDocument += stats.no_document_count;
+        cities.forEach(c => {
+            totalSingleSheet += c.s_takbarg_c;
+            totalSingleSheetArea += c.s_takbarg_a;
+            totalBooklet += c.s_daftarchei_c;
+            totalBookletArea += c.s_daftarchei_a;
+            totalNoDocument += c.s_nosand_c;
         });
 
         return {
-            title: 'آمار استان',
+            title: `آمار استان ${provinceName}`,
             items: [{
-                    label: 'موقوفات دارای سند تک برگ',
-                    value: `${formatNumber(totalSingleSheet)} (${formatNumber(totalSingleSheetArea)} م²)`
-                },
-                {
-                    label: 'موقوفات دارای سند دفترچه‌ای',
-                    value: `${formatNumber(totalBooklet)} (${formatNumber(totalBookletArea)} م²)`
-                },
-                {
-                    label: 'موقوفات فاقد سند',
-                    value: formatNumber(totalNoDocument)
-                },
-                {
-                    label: 'تعداد شهرستان‌ها',
-                    value: Object.keys(cities).length
-                }
-            ]
+                label: 'سند تک برگ',
+                value: `${formatNumber(totalSingleSheet)} (${formatNumber(totalSingleSheetArea)} م²)`
+            }, {
+                label: 'سند دفترچه‌ای',
+                value: `${formatNumber(totalBooklet)} (${formatNumber(totalBookletArea)} م²)`
+            }, {
+                label: 'فاقد سند',
+                value: formatNumber(totalNoDocument)
+            }, {
+                label: 'تعداد شهرستان‌ها',
+                value: cities.length
+            }]
         };
     }
 
-    // Calculate endowment statistics
-    function calculateEndowmentStats(endowments) {
-        let totalEndowments = Object.keys(endowments).length;
+    /**
+     * آمار کلی سطح شهرستان (مجموع موقوفات) را محاسبه می‌کند.
+     */
+    function calculateEndowmentStats(endowments, cityName) {
         let totalProperties = 0;
         let totalIncome = 0;
         let motasarrefi = 0;
 
-        Object.values(endowments).forEach(endowment => {
-            totalProperties += endowment.properties_count;
-            totalIncome += endowment.total_income;
-            if (endowment.type === 'متصرفی') motasarrefi++;
+        endowments.forEach(e => {
+            totalProperties += e.raqabat_count;
+            totalIncome += e.total_income;
+            if (e.type === 'متصرفی') motasarrefi++;
         });
 
         return {
-            title: 'آمار موقوفات',
+            title: `آمار شهرستان ${cityName}`,
             items: [{
-                    label: 'تعداد موقوفات',
-                    value: formatNumber(totalEndowments)
-                },
-                {
-                    label: 'تعداد رقبات',
-                    value: formatNumber(totalProperties)
-                },
-                {
-                    label: 'درآمد کل',
-                    value: `${formatNumber(totalIncome)} ریال`
-                },
-                {
-                    label: 'موقوفات متصرفی',
-                    value: `${motasarrefi} از ${totalEndowments}`
-                }
-            ]
+                label: 'تعداد موقوفات',
+                value: formatNumber(endowments.length)
+            }, {
+                label: 'تعداد کل رقبات',
+                value: formatNumber(totalProperties)
+            }, {
+                label: 'درآمد کل',
+                value: `${formatNumber(totalIncome)} ریال`
+            }, {
+                label: 'موقوفات متصرفی',
+                value: `${motasarrefi} از ${endowments.length}`
+            }]
         };
     }
 
-    // Calculate property statistics
-    function calculatePropertyStats(properties) {
-        let totalProperties = Object.keys(properties).length;
+    /**
+     * آمار کلی سطح موقوفه (مجموع رقبات) را محاسبه می‌کند.
+     */
+    function calculatePropertyStats(properties, endowmentName) {
         let activeProperties = 0;
         let hasLease = 0;
 
-        Object.values(properties).forEach(property => {
-            if (property.status === 'فعال') activeProperties++;
-            if (property.lease_status === 'دارای اجاره نامه') hasLease++;
+        properties.forEach(p => {
+            if (p.status === 'فعال') activeProperties++;
+            if (p.lease_status === 'دارای اجاره نامه') hasLease++;
         });
 
         return {
-            title: 'آمار رقبات',
+            title: `آمار موقوفه ${endowmentName}`,
             items: [{
-                    label: 'تعداد رقبات',
-                    value: formatNumber(totalProperties)
-                },
-                {
-                    label: 'رقبات فعال',
-                    value: `${activeProperties} از ${totalProperties}`
-                },
-                {
-                    label: 'دارای اجاره نامه',
-                    value: `${hasLease} از ${totalProperties}`
-                },
-                {
-                    label: 'فاقد اجاره نامه',
-                    value: `${totalProperties - hasLease} از ${totalProperties}`
-                }
-            ]
+                label: 'تعداد رقبات',
+                value: formatNumber(properties.length)
+            }, {
+                label: 'رقبات فعال',
+                value: `${activeProperties} از ${properties.length}`
+            }, {
+                label: 'دارای اجاره نامه',
+                value: `${hasLease} از ${properties.length}`
+            }]
         };
     }
 
-    // Update statistics panel
+    /**
+     * پنل آمار در سایدبار را به‌روزرسانی می‌کند.
+     * @param {Object} stats - آبجکت آمار.
+     */
     function updateStatsPanel(stats) {
         let html = `<h6 class="text-muted">${stats.title}</h6>`;
-
         stats.items.forEach(item => {
             html += `
                 <div class="stats-item">
@@ -619,126 +619,128 @@ $(document).ready(function() {
                 </div>
             `;
         });
-
-        $('#statsPanel').html(html);
+        $('#statsPanel').html(html).removeClass('stats-loading');
     }
 
-    // Update breadcrumb
-    function updateBreadcrumb(items) {
+    /**
+     * نوار ناوبری (Breadcrumb) را به‌روزرسانی می‌کند.
+     * @param {...Object} items - آبجکت‌هایی که هر کدام شامل name و loadFunction هستند.
+     */
+    function updateBreadcrumb(...items) {
         let html = '';
-        items.forEach((item, index) => {
-            if (index === items.length - 1) {
-                html += `<li class="breadcrumb-item active">${item.name}</li>`;
-            } else {
-                html += `<li class="breadcrumb-item"><a href="#" onclick="navigateToLevel('${item.level}')">${item.name}</a></li>`;
-            }
-        });
-
-        $('#breadcrumb').html(html);
-        $('#backBtn').toggle(navigationStack.length > 0);
-    }
-
-    // Navigate to specific level
-    window.navigateToLevel = function(level) {
-        if (level === 'country') {
-            navigationStack = [];
-            loadCountryData();
-        }
-        // Add more navigation logic as needed
-    };
-
-    // Setup event handlers
-    function setupEventHandlers() {
-        // Back button
-        $('#backBtn').click(function() {
-            if (navigationStack.length > 0) {
-                const previous = navigationStack.pop();
-                currentData = previous.data;
-                currentLevel = previous.level;
-
-                if (currentLevel === 'country') {
-                    displayProvinces(currentData);
-                    updateStatsPanel(calculateCountryStats(currentData));
-                    updateBreadcrumb([{
-                        name: 'نقشه ایران',
-                        level: 'country'
-                    }]);
-                } else if (currentLevel === 'province') {
-                    // Handle province level back navigation
+        if (items.length === 0) {
+            // سطح ریشه (کشور)
+            html = '<li class="breadcrumb-item active"><i class="fas fa-map me-1"></i>نقشه ایران</li>';
+        } else {
+            items.forEach((item, index) => {
+                if (index === items.length - 1) {
+                    // آیتم آخر (فعلی)
+                    html += `<li class="breadcrumb-item active">${item.name}</li>`;
+                } else {
+                    // آیتم‌های قابل کلیک قبلی
+                    // ما تابع بازگشت را در یک closure ذخیره می‌کنیم
+                    const funcName = `navFunc${index}`;
+                    window[funcName] = item.loadFunction;
+                    html += `<li class="breadcrumb-item"><a href="#" onclick="${funcName}(); return false;">${item.name}</a></li>`;
                 }
-            }
-        });
-
-        // Table row clicks
-        $(document).on('click', '.province-row', function() {
-            const provinceId = $(this).data('province');
-            viewProvince(provinceId);
-        });
-
-        $(document).on('click', '.city-row', function() {
-            const provinceId = $(this).data('province');
-            const cityId = $(this).data('city');
-            viewCity(provinceId, cityId);
-        });
-
-        $(document).on('click', '.endowment-row', function() {
-            const provinceId = $(this).data('province');
-            const cityId = $(this).data('city');
-            const endowmentId = $(this).data('endowment');
-            viewEndowment(provinceId, cityId, endowmentId);
-        });
-
-        // Button clicks
-        $(document).on('click', '[data-province]:not([data-city])', function(e) {
-            e.stopPropagation();
-            const provinceId = $(this).data('province');
-            viewProvince(provinceId);
-        });
-
-        $(document).on('click', '[data-city]', function(e) {
-            e.stopPropagation();
-            const provinceId = $(this).data('province');
-            const cityId = $(this).data('city');
-            if ($(this).data('endowment')) {
-                const endowmentId = $(this).data('endowment');
-                viewEndowment(provinceId, cityId, endowmentId);
-            } else {
-                viewCity(provinceId, cityId);
-            }
-        });
+            });
+        }
+        $('#breadcrumb').html(html);
+        $('#backBtn').toggle(navigationStack.length > 0); // نمایش/عدم نمایش دکمه بازگشت
     }
 
-    // Utility functions
-    function clearMarkers() {
+    /**
+     * منطق دکمه بازگشت را مدیریت می‌کند.
+     */
+    function handleBackNavigation() {
+        if (navigationStack.length > 0) {
+            const previousState = navigationStack.pop();
+            showLoading();
+            // تابع بازگشت ذخیره شده در پشته را فراخوانی می‌کند
+            previousState.loadFunction();
+            hideLoading();
+        }
+    }
+
+
+    // --- توابع ابزاری (Utility) ---
+
+    /**
+     * تمام مارکرهای فعلی را از نقشه پاک می‌کند.
+     */
+    function clearMap() {
         markers.forEach(marker => {
             map.removeLayer(marker);
         });
         markers = [];
     }
 
-    function formatNumber(num) {
-        if (typeof num === 'string') return num;
-        if (typeof num !== 'number') return num;
+    /**
+     * یک مارکر جدید به نقشه اضافه می‌کند.
+     * @param {Array} latLng - مختصات [lat, lng].
+     * @param {string} popupContent - محتوای HTML پاپ‌آپ.
+     */
+    function addMarker(latLng, popupContent) {
+        const marker = L.marker(latLng).addTo(map);
+        marker.bindPopup(popupContent);
+        markers.push(marker);
+    }
 
-        // Simple number formatting for Persian
+    /**
+     * اعداد را با کاما (,) جدا می‌کند.
+     */
+    function formatNumber(num) {
+        if (num === null || num === undefined) return '-';
         return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     }
 
+    /**
+     * مودال لودینگ را نمایش می‌دهد.
+     */
     function showLoading() {
+        $('.stats-loading').show(); // نمایش لودر سایدبار
         $('#loadingModal').modal('show');
     }
 
+    /**
+     * مودال لودینگ را پنهان می‌کند.
+     */
     function hideLoading() {
-        console.log('Hiding loading modal...');
+        $('.stats-loading').hide();
         $('#loadingModal').modal('hide');
-        // Force hide if modal doesn't respond
-        setTimeout(function() {
-            $('#loadingModal').removeClass('show').hide();
-            $('.modal-backdrop').remove();
-            $('body').removeClass('modal-open').css('padding-right', '');
-        }, 100);
+        // رفع مشکل ماندن مودال در بوت‌استرپ
+        setTimeout(() => {
+            if ($('body').hasClass('modal-open')) {
+                $('#loadingModal').modal('hide');
+            }
+        }, 500);
     }
 
+    /**
+     * مدیریت خطاهای AJAX و نمایش آلرت.
+     */
+    function handleAjaxError(xhr, status, error) {
+        console.error('AJAX Error:', status, error);
+        let message = 'خطا در بارگذاری اطلاعات';
+        if (xhr.status === 404) {
+            message = 'داده‌ای برای نمایش یافت نشد.';
+            // اگر ۴۰۴ بود، فقط جدول را خالی کن و خطا نده
+            $('#tableBody').html('<tr><td colspan="100%" class="text-center">داده‌ای یافت نشد.</td></tr>');
+            updateStatsPanel({
+                title: 'خطا',
+                items: [{
+                    label: 'وضعیت',
+                    value: 'داده‌ای یافت نشد'
+                }]
+            });
+        } else {
+            showAlert(message, 'danger');
+        }
+    }
+
+    /**
+     * نمایش یک آلرت (Alert) موقت.
+     */
     function showAlert(message, type) {
         const alertHtml = `
             <div class="alert alert-${type} alert-dismissible fade show position-fixed" 
@@ -753,4 +755,7 @@ $(document).ready(function() {
             $('.alert').alert('close');
         }, 5000);
     }
+
+    // --- اجرای برنامه ---
+    initDashboard();
 });
