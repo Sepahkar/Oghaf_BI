@@ -98,6 +98,8 @@ def create_tables(conn):
             type TEXT NOT NULL,
             intent TEXT NOT NULL, -- نیت واقف
             total_income REAL NOT NULL,
+            lat REAL,  -- <--- ستون جدید
+            lng REAL,  -- <--- ستون جدید
             FOREIGN KEY (county_id) REFERENCES counties (id)
         );
         ''')
@@ -208,10 +210,13 @@ def generate_mock_data(conn):
                             'INSERT INTO properties (endowment_id, title, land_use, status, user, lease_status, expiry_date, lease_amount) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
                             properties_to_insert
                         )
+                        # ایجاد مختصات تستی برای موقوفه (نزدیک مرکز شهرستان)
+                        e_lat = c_lat + random.uniform(-0.05, 0.05)
+                        e_lng = c_lng + random.uniform(-0.02, 0.02)
                         
                         # درج موقوفه در دیتابیس
                         cursor.execute(
-                            'INSERT INTO endowments (id, county_id, name, raqabat_count, type, intent, total_income) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                            'INSERT INTO endowments (id, county_id, name, raqabat_count, type, intent, total_income, lat, lng) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
                             (
                                 current_endowment_id,
                                 c_id,
@@ -219,7 +224,9 @@ def generate_mock_data(conn):
                                 num_raqabat,
                                 random.choice(ENDOWMENT_TYPES),
                                 random.choice(ENDOWMENT_INTENTS),
-                                total_income
+                                total_income,
+                                e_lat, # <--- درج مختصات
+                                e_lng  # <--- درج مختصات
                             )
                         )
         

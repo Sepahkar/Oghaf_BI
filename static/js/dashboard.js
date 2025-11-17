@@ -1,4 +1,4 @@
-// Oghaf Management Dashboard - Main JavaScript File (v2 - SQLite Ready)
+// Oghaf Management Dashboard - Main JavaScript File (v3 - ساختار اصلاح شده)
 
 $(document).ready(function() {
     // --- متغیرهای سراسری ---
@@ -28,6 +28,10 @@ $(document).ready(function() {
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© OpenStreetMap contributors'
             }).addTo(map);
+
+            // --- این خط جدید، مشکل 404 مارکر را حل می‌کند ---
+            L.Icon.Default.imagePath = '/static/images/';
+
         } catch (error) {
             console.error('Error initializing map:', error);
         }
@@ -42,7 +46,6 @@ $(document).ready(function() {
         $('#backBtn').click(handleBackNavigation);
 
         // --- Event Delegation برای دکمه‌های جدول ---
-        // (این دکمه‌ها به صورت پویا ساخته می‌شوند)
         $('#dataTable').on('click', '.btn-view-cities', function() {
             const provinceId = $(this).data('id');
             const provinceName = $(this).data('name');
@@ -65,7 +68,6 @@ $(document).ready(function() {
         });
 
         // --- Event Delegation برای دکمه‌های پاپ‌آپ نقشه ---
-        // (این دکمه‌ها نیز پویا هستند)
         $('#map').on('click', '.popup-btn-cities', function() {
             const provinceId = $(this).data('id');
             const provinceName = $(this).data('name');
@@ -78,7 +80,17 @@ $(document).ready(function() {
             const cityName = $(this).data('name');
             loadEndowmentData(provinceId, cityId, cityName);
         });
-    }
+
+        $('#map').on('click', '.popup-btn-properties', function() {
+            const provinceId = $(this).data('province-id');
+            const cityId = $(this).data('city-id');
+            const endowmentId = $(this).data('id');
+            const endowmentName = $(this).data('name');
+            loadPropertyData(provinceId, cityId, endowmentId, endowmentName);
+        });
+    } // --- پایان تابع setupEventHandlers ---
+    // (توابع بعدی باید بیرون از اینجا باشند)
+
 
     // --- توابع بارگذاری داده (سطح کشور) ---
 
@@ -110,7 +122,7 @@ $(document).ready(function() {
      */
     function displayProvinces(provinces) {
         clearMap();
-        map.setView([32.4279, 53.6880], 5); // ریست کردن زوم نقشه
+        map.flyTo([32.4279, 53.6880], 5); // ریست کردن زوم نقشه
 
         const tableHeaders = `
             <th>نام استان</th>
@@ -124,7 +136,6 @@ $(document).ready(function() {
 
         let tableRows = '';
         provinces.forEach(province => {
-            // آمار از API می‌آید (در app.py محاسبه شده)
             const stats = {
                 single_sheet_count: province.single_sheet_count,
                 single_sheet_area: province.single_sheet_area,
@@ -133,18 +144,16 @@ $(document).ready(function() {
                 no_document_count: province.no_document_count
             };
 
-            // افزودن مارکر به نقشه
             const popupContent = createProvincePopup(province, stats);
             addMarker([province.lat, province.lng], popupContent);
 
-            // افزودن ردیف به جدول
             tableRows += `
                 <tr>
                     <td><strong>${province.name}</strong></td>
                     <td class="number-format">${formatNumber(stats.single_sheet_count)}</td>
-                    <td class="number-format">${formatNumber(stats.single_sheet_area)} م²</td>
+                    <td class="number-format">${formatNumber(stats.single_sheet_area)} متر مربع</td>
                     <td class="number-format">${formatNumber(stats.booklet_count)}</td>
-                    <td class="number-format">${formatNumber(stats.booklet_area)} م²</td>
+                    <td class="number-format">${formatNumber(stats.booklet_area)} متر مربع</td>
                     <td class="number-format">${formatNumber(stats.no_document_count)}</td>
                     <td>
                         <button class="btn btn-primary btn-sm btn-view-cities" 
@@ -158,8 +167,9 @@ $(document).ready(function() {
         });
 
         $('#tableHeaders').html(tableHeaders);
-        $('#tableBody').html(tableRows);
-        $('#tableTitle').html('<i class="fas fa-table me-2"></i>جدول استان‌ها');
+        $('#tableBody').hide();
+        $('#tableBody').html(tableRows).fadeIn(600);
+        $('#tableTitle').html('<i class="fas fa-list-ul me-2"></i>جدول استان‌ها');
         $('#mapTitle').html('<i class="fas fa-map-marked-alt me-2"></i>نقشه ایران - استان‌ها');
     }
 
@@ -174,8 +184,8 @@ $(document).ready(function() {
             <div style="min-width: 250px; text-align: right; direction: rtl;">
                 <h6>${province.name}</h6>
                 <table class="stats-table">
-                    <tr><td>سند تک برگ:</td><td>${formatNumber(stats.single_sheet_count)} (${formatNumber(stats.single_sheet_area)} م²)</td></tr>
-                    <tr><td>سند دفترچه‌ای:</td><td>${formatNumber(stats.booklet_count)} (${formatNumber(stats.booklet_area)} م²)</td></tr>
+                    <tr><td>سند تک برگ:</td><td>${formatNumber(stats.single_sheet_count)} (${formatNumber(stats.single_sheet_area)} متر مربع)</td></tr>
+                    <tr><td>سند دفترچه‌ای:</td><td>${formatNumber(stats.booklet_count)} (${formatNumber(stats.booklet_area)} متر مربع)</td></tr>
                     <tr><td>فاقد سند:</td><td>${formatNumber(stats.no_document_count)}</td></tr>
                 </table>
                 <button class="btn btn-primary btn-sm mt-2 w-100 popup-btn-cities" 
@@ -196,9 +206,9 @@ $(document).ready(function() {
      */
     function loadCityData(provinceId, provinceName) {
         showLoading();
-        // وضعیت فعلی را قبل از رفتن به سطح بعد، در پشته ذخیره کن
         navigationStack.push({
             level: currentLevel,
+            name: 'ایران', // نام سطح قبلی برای بازگشت
             loadFunction: loadCountryData
         });
         currentLevel = 'province';
@@ -216,14 +226,12 @@ $(document).ready(function() {
                     name: provinceName
                 });
 
-                // زوم روی استان
                 if (data.length > 0) {
-                    // محاسبه مرکز شهرستان‌ها برای زوم بهتر
                     const latitudes = data.map(c => c.lat);
                     const longitudes = data.map(c => c.lng);
                     const centerLat = latitudes.reduce((a, b) => a + b, 0) / latitudes.length;
                     const centerLng = longitudes.reduce((a, b) => a + b, 0) / longitudes.length;
-                    map.setView([centerLat, centerLng], 8);
+                    map.flyTo([centerLat, centerLng], 8);
                 }
             },
             error: handleAjaxError,
@@ -251,7 +259,6 @@ $(document).ready(function() {
 
         let tableRows = '';
         cities.forEach(city => {
-            // آمار مستقیماً از دیتابیس (جدول counties) می‌آید
             const stats = {
                 single_sheet_count: city.s_takbarg_c,
                 single_sheet_area: city.s_takbarg_a,
@@ -267,9 +274,9 @@ $(document).ready(function() {
                 <tr>
                     <td><strong>${city.name}</strong></td>
                     <td class="number-format">${formatNumber(stats.single_sheet_count)}</td>
-                    <td class="number-format">${formatNumber(stats.single_sheet_area)} م²</td>
+                    <td class="number-format">${formatNumber(stats.single_sheet_area)} متر مربع</td>
                     <td class="number-format">${formatNumber(stats.booklet_count)}</td>
-                    <td class="number-format">${formatNumber(stats.booklet_area)} م²</td>
+                    <td class="number-format">${formatNumber(stats.booklet_area)} متر مربع</td>
                     <td class="number-format">${formatNumber(stats.no_document_count)}</td>
                     <td>
                         <button class="btn btn-success btn-sm btn-view-endowments" 
@@ -284,8 +291,9 @@ $(document).ready(function() {
         });
 
         $('#tableHeaders').html(tableHeaders);
-        $('#tableBody').html(tableRows);
-        $('#tableTitle').html('<i class="fas fa-table me-2"></i>جدول شهرستان‌ها');
+        $('#tableBody').hide();
+        $('#tableBody').html(tableRows).fadeIn(600);
+        $('#tableTitle').html('<i class="fas fa-list-ul me-2"></i>جدول شهرستان‌ها');
         $('#mapTitle').html('<i class="fas fa-map-marked-alt me-2"></i>نقشه شهرستان‌ها');
     }
 
@@ -297,8 +305,8 @@ $(document).ready(function() {
             <div style="min-width: 250px; text-align: right; direction: rtl;">
                 <h6>${city.name}</h6>
                 <table class="stats-table">
-                    <tr><td>سند تک برگ:</td><td>${formatNumber(stats.single_sheet_count)} (${formatNumber(stats.single_sheet_area)} م²)</td></tr>
-                    <tr><td>سند دفترچه‌ای:</td><td>${formatNumber(stats.booklet_count)} (${formatNumber(stats.booklet_area)} م²)</td></tr>
+                    <tr><td>سند تک برگ:</td><td>${formatNumber(stats.single_sheet_count)} (${formatNumber(stats.single_sheet_area)} متر مربع)</td></tr>
+                    <tr><td>سند دفترچه‌ای:</td><td>${formatNumber(stats.booklet_count)} (${formatNumber(stats.booklet_area)} متر مربع)</td></tr>
                     <tr><td>فاقد سند:</td><td>${formatNumber(stats.no_document_count)}</td></tr>
                 </table>
                 <button class="btn btn-success btn-sm mt-2 w-100 popup-btn-endowments" 
@@ -320,7 +328,8 @@ $(document).ready(function() {
         showLoading();
         navigationStack.push({
             level: currentLevel,
-            loadFunction: () => loadCityData(provinceId, navigationStack[navigationStack.length - 1].name) // تابع بازگشت به شهرستان
+            name: navigationStack[navigationStack.length - 1].name, // نام استان از پشته
+            loadFunction: () => loadCityData(provinceId, navigationStack[navigationStack.length - 1].name)
         });
         currentLevel = 'city';
 
@@ -328,13 +337,13 @@ $(document).ready(function() {
             url: `/api/province/${provinceId}/city/${cityId}/endowments`,
             method: 'GET',
             success: function(data) {
-                displayEndowments(data, provinceId, cityId);
+                displayEndowments(data, provinceId, cityId); // تابع اصلاح شده فراخوانی می‌شود
                 updateStatsPanel(calculateEndowmentStats(data, cityName));
                 updateBreadcrumb({
                     name: 'ایران',
                     loadFunction: loadCountryData
                 }, {
-                    name: navigationStack[navigationStack.length - 1].name, // نام استان از پشته
+                    name: navigationStack[navigationStack.length - 1].name, // نام استان
                     loadFunction: () => loadCityData(provinceId, navigationStack[navigationStack.length - 1].name)
                 }, {
                     name: cityName
@@ -346,10 +355,10 @@ $(document).ready(function() {
     }
 
     /**
-     * موقوفات را در جدول نمایش می‌دهد. (در این سطح مارکر نقشه نداریم)
+     * موقوفات را در جدول و روی نقشه نمایش می‌دهد. (نسخه اصلاح شده)
      */
     function displayEndowments(endowments, provinceId, cityId) {
-        clearMap(); // در سطح موقوفه، مارکرها را پاک می‌کنیم (چون مختصات ندارند)
+        clearMap(); // نقشه را از مارکرهای شهرستان پاک کن
 
         const tableHeaders = `
             <th>نام موقوفه</th>
@@ -361,7 +370,26 @@ $(document).ready(function() {
         `;
 
         let tableRows = '';
+        let validEndowments = []; // برای محاسبه زوم نقشه
+
         endowments.forEach(endowment => {
+            // افزودن مارکر به نقشه (فقط اگر مختصات داشت)
+            if (endowment.lat && endowment.lng) {
+                const popupContent = createEndowmentPopup(endowment, provinceId, cityId);
+                // آیکون سفارشی برای موقوفه
+                const endowmentIcon = L.divIcon({
+                    html: '<i class="fas fa-landmark" style="font-size: 20px; color: #0d6efd;"></i>',
+                    className: 'map-icon'
+                });
+                const marker = L.marker([endowment.lat, endowment.lng], {
+                    icon: endowmentIcon
+                }).addTo(map);
+                marker.bindPopup(popupContent);
+                markers.push(marker);
+                validEndowments.push(endowment);
+            }
+
+            // افزودن ردیف به جدول
             tableRows += `
                 <tr>
                     <td><strong>${endowment.name}</strong></td>
@@ -384,12 +412,46 @@ $(document).ready(function() {
             `;
         });
 
+        $('#tableBody').hide(); // برای انیمیشن
         $('#tableHeaders').html(tableHeaders);
-        $('#tableBody').html(tableRows);
-        $('#tableTitle').html('<i class="fas fa-table me-2"></i>جدول موقوفات');
-        $('#mapTitle').html('<i class="fas fa-map-marked-alt me-2"></i>موقوفات شهرستان');
+        $('#tableBody').html(tableRows).fadeIn(600);
+        $('#tableTitle').html('<i class="fas fa-list-ul me-2"></i>جدول موقوفات');
+        $('#mapTitle').html('<i class="fas fa-map-marked-alt me-2"></i>نقشه پراکندگی موقوفات');
+
+        // زوم خودکار نقشه روی موقوفات
+        if (validEndowments.length > 0) {
+            const latitudes = validEndowments.map(c => c.lat);
+            const longitudes = validEndowments.map(c => c.lng);
+            const centerLat = latitudes.reduce((a, b) => a + b, 0) / latitudes.length;
+            const centerLng = longitudes.reduce((a, b) => a + b, 0) / longitudes.length;
+            map.flyTo([centerLat, centerLng], 11); // زوم نزدیک‌تر (سطح ۱۱)
+        }
     }
 
+
+    /**
+     * محتوای HTML پاپ‌آپ یک موقوفه را می‌سازد.
+     */
+    function createEndowmentPopup(endowment, provinceId, cityId) {
+        return `
+            <div style="min-width: 250px; text-align: right; direction: rtl;">
+                <h6>${endowment.name}</h6>
+                <table class="stats-table">
+                    <tr><td>نوع:</td><td>${endowment.type}</td></tr>
+                    <tr><td>نیت:</td><td>${endowment.intent}</td></tr>
+                    <tr><td>تعداد رقبات:</td><td>${formatNumber(endowment.raqabat_count)}</td></tr>
+                    <tr><td>درآمد:</td><td>${formatNumber(endowment.total_income)} ریال</td></tr>
+                </table>
+                <button class="btn btn-warning btn-sm mt-2 w-100 popup-btn-properties" 
+                        data-id="${endowment.id}" 
+                        data-city-id="${cityId}"
+                        data-province-id="${provinceId}" 
+                        data-name="${endowment.name}">
+                    <i class="fas fa-arrow-left me-1"></i>مشاهده رقبات
+                </button>
+            </div>
+        `;
+    }
 
     // --- توابع بارگذاری داده (سطح رقبه) ---
 
@@ -400,7 +462,8 @@ $(document).ready(function() {
         showLoading();
         navigationStack.push({
             level: currentLevel,
-            loadFunction: () => loadEndowmentData(provinceId, cityId, navigationStack[navigationStack.length - 1].name) // بازگشت به موقوفات
+            name: navigationStack[navigationStack.length - 1].name, // نام شهرستان از پشته
+            loadFunction: () => loadEndowmentData(provinceId, cityId, navigationStack[navigationStack.length - 1].name)
         });
         currentLevel = 'endowment';
 
@@ -410,15 +473,19 @@ $(document).ready(function() {
             success: function(data) {
                 displayProperties(data);
                 updateStatsPanel(calculatePropertyStats(data, endowmentName));
+
+                const provinceName = navigationStack[navigationStack.length - 2].name;
+                const cityName = navigationStack[navigationStack.length - 1].name;
+
                 updateBreadcrumb({
                     name: 'ایران',
                     loadFunction: loadCountryData
                 }, {
-                    name: '...', // نام استان (برای سادگی)
-                    loadFunction: () => loadCityData(provinceId, '...')
+                    name: provinceName,
+                    loadFunction: () => loadCityData(provinceId, provinceName)
                 }, {
-                    name: navigationStack[navigationStack.length - 1].name, // نام شهرستان
-                    loadFunction: () => loadEndowmentData(provinceId, cityId, navigationStack[navigationStack.length - 1].name)
+                    name: cityName,
+                    loadFunction: () => loadEndowmentData(provinceId, cityId, cityName)
                 }, {
                     name: endowmentName
                 });
@@ -464,8 +531,9 @@ $(document).ready(function() {
         });
 
         $('#tableHeaders').html(tableHeaders);
-        $('#tableBody').html(tableRows);
-        $('#tableTitle').html('<i class="fas fa-table me-2"></i>جدول رقبات');
+        $('#tableBody').hide(); // اول پنهان کنیم   
+        $('#tableBody').html(tableRows).fadeIn(600);
+        $('#tableTitle').html('<i class="fas fa-list-ul me-2"></i>جدول رقبات');
         $('#mapTitle').html('<i class="fas fa-map-marked-alt me-2"></i>رقبات موقوفه');
     }
 
@@ -494,10 +562,10 @@ $(document).ready(function() {
             title: 'آمار کلی کشور',
             items: [{
                 label: 'سند تک برگ',
-                value: `${formatNumber(totalSingleSheet)} (${formatNumber(totalSingleSheetArea)} م²)`
+                value: `${formatNumber(totalSingleSheet)} (${formatNumber(totalSingleSheetArea)} متر مربع)`
             }, {
                 label: 'سند دفترچه‌ای',
-                value: `${formatNumber(totalBooklet)} (${formatNumber(totalBookletArea)} م²)`
+                value: `${formatNumber(totalBooklet)} (${formatNumber(totalBookletArea)} متر مربع)`
             }, {
                 label: 'فاقد سند',
                 value: formatNumber(totalNoDocument)
@@ -532,10 +600,10 @@ $(document).ready(function() {
             title: `آمار استان ${provinceName}`,
             items: [{
                 label: 'سند تک برگ',
-                value: `${formatNumber(totalSingleSheet)} (${formatNumber(totalSingleSheetArea)} م²)`
+                value: `${formatNumber(totalSingleSheet)} (${formatNumber(totalSingleSheetArea)} متر مربع)`
             }, {
                 label: 'سند دفترچه‌ای',
-                value: `${formatNumber(totalBooklet)} (${formatNumber(totalBookletArea)} م²)`
+                value: `${formatNumber(totalBooklet)} (${formatNumber(totalBookletArea)} متر مربع)`
             }, {
                 label: 'فاقد سند',
                 value: formatNumber(totalNoDocument)
@@ -638,7 +706,6 @@ $(document).ready(function() {
                     html += `<li class="breadcrumb-item active">${item.name}</li>`;
                 } else {
                     // آیتم‌های قابل کلیک قبلی
-                    // ما تابع بازگشت را در یک closure ذخیره می‌کنیم
                     const funcName = `navFunc${index}`;
                     window[funcName] = item.loadFunction;
                     html += `<li class="breadcrumb-item"><a href="#" onclick="${funcName}(); return false;">${item.name}</a></li>`;
@@ -658,7 +725,7 @@ $(document).ready(function() {
             showLoading();
             // تابع بازگشت ذخیره شده در پشته را فراخوانی می‌کند
             previousState.loadFunction();
-            hideLoading();
+            // نکته: hideLoading() در خود تابع loadFunction (در بخش complete) فراخوانی می‌شود
         }
     }
 
@@ -707,13 +774,17 @@ $(document).ready(function() {
      */
     function hideLoading() {
         $('.stats-loading').hide();
-        $('#loadingModal').modal('hide');
-        // رفع مشکل ماندن مودال در بوت‌استرپ
         setTimeout(() => {
-            if ($('body').hasClass('modal-open')) {
-                $('#loadingModal').modal('hide');
-            }
-        }, 500);
+            // ۱. دستور استاندارد بستن مودال
+            $('#loadingModal').modal('hide');
+
+            // --- ۲. کد اطمینان برای رفع قفل صفحه ---
+            // این کدها پس‌زمینه خاکستری را به زور حذف می‌کنند
+            // حتی اگر بوت‌استرپ در بستن مودال شکست بخورد
+            $('body').removeClass('modal-open');
+            $('.modal-backdrop').remove();
+            // ---
+        }, 500); // ۵۰۰ میلی‌ثانیه تاخیر
     }
 
     /**
@@ -721,10 +792,10 @@ $(document).ready(function() {
      */
     function handleAjaxError(xhr, status, error) {
         console.error('AJAX Error:', status, error);
+        hideLoading(); // در صورت خطا، لودینگ را ببند
         let message = 'خطا در بارگذاری اطلاعات';
         if (xhr.status === 404) {
             message = 'داده‌ای برای نمایش یافت نشد.';
-            // اگر ۴۰۴ بود، فقط جدول را خالی کن و خطا نده
             $('#tableBody').html('<tr><td colspan="100%" class="text-center">داده‌ای یافت نشد.</td></tr>');
             updateStatsPanel({
                 title: 'خطا',
@@ -744,7 +815,7 @@ $(document).ready(function() {
     function showAlert(message, type) {
         const alertHtml = `
             <div class="alert alert-${type} alert-dismissible fade show position-fixed" 
-                 style="top: 80px; left: 20px; z-index: 9999; min-width: 300px;">
+                 style="top: 80px; left: 20px; z-index: 9999; min-width: 300px; direction: rtl;">
                 ${message}
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
@@ -758,4 +829,5 @@ $(document).ready(function() {
 
     // --- اجرای برنامه ---
     initDashboard();
-});
+
+}); // --- پایان $(document).ready ---
