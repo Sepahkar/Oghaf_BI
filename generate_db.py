@@ -1,11 +1,10 @@
 import sqlite3
 import random
 from faker import Faker
-import jdatetime # <--- جدید
+import jdatetime
 import os
 
-# ... (لیست استان‌ها و شهرستان‌ها بدون تغییر) ...
-# لیست واقعی استان‌ها
+# لیست استان‌ها (ثابت)
 PROVINCES = [
     (1, 'آذربایجان شرقی', 38.0772, 46.2917), (2, 'آذربایجان غربی', 37.5452, 45.0728),
     (3, 'اردبیل', 38.2468, 48.2950), (4, 'اصفهان', 32.6546, 51.6680),
@@ -24,257 +23,122 @@ PROVINCES = [
     (29, 'هرمزگان', 27.1865, 56.2808), (30, 'همدان', 34.7982, 48.5146),
     (31, 'یزد', 31.8974, 54.3675)
 ]
-# شهرستان‌های مازندران (ID استان = 27)
-MAZANDARAN_COUNTIES = [
-    (100, 'ساری', 36.5630, 53.0601), (101, 'بابل', 36.5393, 52.6787), (102, 'آمل', 36.4673, 52.3507),
-    (103, 'قائم‌شهر', 36.4623, 52.8624), (104, 'نوشهر', 36.6508, 51.5054), (105, 'چالوس', 36.6558, 51.4217),
-    (106, 'رامسر', 36.9171, 50.6725), (107, 'بهشهر', 36.6917, 53.5532), (108, 'تنکابن', 36.8166, 50.8795)
-]
-# شهرستان‌های فارس (ID استان = 17)
-FARS_COUNTIES = [
-    (200, 'شیراز', 29.6100, 52.5311), (201, 'کازرون', 29.6179, 51.6521), (202, 'مرودشت', 29.8735, 52.8028),
-    (203, 'جهرم', 28.5000, 53.5500), (204, 'لارستان', 27.6830, 54.3419), (205, 'فسا', 28.9381, 53.6481),
-    (206, 'داراب', 28.7519, 54.5444), (207, 'آباده', 31.1610, 52.6510), (208, 'اقلید', 30.8906, 52.6845)
-]
-
-# --- داده‌های تستی جدید ---
-LEASE_STATUSES = ["دارای اجاره نامه", "فاقد اجاره نامه", "در دست اقدام"]
-RAQABEH_TYPES = ["کشاورزی", "تجاری", "مسکونی", "آموزشی", "درمانی", "اداری"]
-ENDOWMENT_TYPES = ["متصرفی", "غیرمتصرفی"]
-ENDOWMENT_INTENTS = ["اطعام", "آموزش", "درمان", "عزاداری", "عمومی", "حمایت از ایتام"]
-
-# (امتیاز ۶) وضعیت‌های جدید رقبه
-PROPERTY_STATUSES = [
-    "عدم شناسایی متصرف", "مذاکره با متصرف", "دعوای حقوقی", 
-    "دارای اجاره نامه معتبر", "اجاره نامه منقضی شده"
-]
-# (امتیاز ۷) وضعیت‌های سند
-DOCUMENT_STATUSES = ["تک برگ", "دفترچه ای", "فاقد سند"]
 
 fake = Faker('fa_IR')
 
 def create_connection():
-    # ... (بدون تغییر) ...
-    try:
-        conn = sqlite3.connect('oqaf.db')
-        print(f"دیتابیس oqaf.db با موفقیت ایجاد یا باز شد.")
-        return conn
-    except sqlite3.Error as e:
-        print(f"خطا در اتصال به دیتابیس: {e}")
-        return None
+    return sqlite3.connect('oqaf.db')
 
 def create_tables(conn):
-    """ایجاد جداول دیتابیس (نسخه ۲)"""
-    try:
-        cursor = conn.cursor()
-        
-        # ... (جدول provinces بدون تغییر) ...
-        cursor.execute('''
-        CREATE TABLE IF NOT EXISTS provinces (
-            id INTEGER PRIMARY KEY,
-            name TEXT NOT NULL,
-            lat REAL NOT NULL,
-            lng REAL NOT NULL
-        );
-        ''')
-        
-        # ... (جدول counties بدون تغییر) ...
-        cursor.execute('''
-        CREATE TABLE IF NOT EXISTS counties (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            province_id INTEGER NOT NULL,
-            name TEXT NOT NULL,
-            lat REAL NOT NULL,
-            lng REAL NOT NULL,
-            s_takbarg_c INTEGER NOT NULL,
-            s_takbarg_a REAL NOT NULL,
-            s_daftarchei_c INTEGER NOT NULL,
-            s_daftarchei_a REAL NOT NULL,
-            s_nosand_c INTEGER NOT NULL,
-            FOREIGN KEY (province_id) REFERENCES provinces (id)
-        );
-        ''')
-        
-        # (امتیاز ۷) جدول موقوفات: ستون document_status اضافه شد
-        cursor.execute('''
-        CREATE TABLE IF NOT EXISTS endowments (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            county_id INTEGER NOT NULL,
-            name TEXT NOT NULL,
-            raqabat_count INTEGER NOT NULL,
-            type TEXT NOT NULL,
-            intent TEXT NOT NULL,
-            total_income REAL NOT NULL,
-            lat REAL,
-            lng REAL,
-            document_status TEXT NOT NULL,  -- <--- ستون جدید
-            FOREIGN KEY (county_id) REFERENCES counties (id)
-        );
-        ''')
-        
-        # (امتیاز ۶ و ۷) جدول رقبات: دو ستون جدید اضافه شد
-        cursor.execute('''
-        CREATE TABLE IF NOT EXISTS properties (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            endowment_id INTEGER NOT NULL,
-            title TEXT NOT NULL,
-            land_use TEXT NOT NULL,
-            status TEXT NOT NULL, -- فعال، غیرفعال (قدیمی)
-            user TEXT,
-            lease_status TEXT NOT NULL,
-            expiry_date TEXT,
-            lease_amount REAL,
-            property_status TEXT NOT NULL, -- <--- ستون جدید (امتیاز ۶)
-            document_status TEXT NOT NULL, -- <--- ستون جدید (امتیاز ۷)
-            FOREIGN KEY (endowment_id) REFERENCES endowments (id)
-        );
-        ''')
-        
-        conn.commit()
-        print("جداول (نسخه ۲) با موفقیت ایجاد شدند.")
-    except sqlite3.Error as e:
-        print(f"خطا در ایجاد جداول: {e}")
+    cursor = conn.cursor()
+    cursor.execute('CREATE TABLE IF NOT EXISTS provinces (id INTEGER PRIMARY KEY, name TEXT, lat REAL, lng REAL)')
+    
+    # جدول شهرستان با تفکیک دقیق مساحت و تعداد
+    cursor.execute('''CREATE TABLE IF NOT EXISTS counties (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, province_id INTEGER, name TEXT, lat REAL, lng REAL,
+        s_takbarg_c INTEGER, s_takbarg_a REAL, 
+        s_daftarchei_c INTEGER, s_daftarchei_a REAL, 
+        s_nosand_c INTEGER, s_nosand_a REAL, 
+        FOREIGN KEY (province_id) REFERENCES provinces (id))''')
+    
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_county_province ON counties(province_id)")
+
+    cursor.execute('''CREATE TABLE IF NOT EXISTS endowments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, county_id INTEGER, name TEXT, raqabat_count INTEGER,
+        type TEXT, intent TEXT, total_income REAL, lat REAL, lng REAL, document_status TEXT,
+        FOREIGN KEY (county_id) REFERENCES counties (id))''')
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_endow_county ON endowments(county_id)")
+
+    cursor.execute('''CREATE TABLE IF NOT EXISTS properties (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, endowment_id INTEGER, title TEXT, land_use TEXT,
+        status TEXT, user TEXT, lease_status TEXT, expiry_date TEXT, lease_amount REAL,
+        property_status TEXT, document_status TEXT, area REAL,
+        FOREIGN KEY (endowment_id) REFERENCES endowments (id))''')
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_prop_endow ON properties(endowment_id)")
+    
+    conn.commit()
 
 def generate_mock_data(conn):
-    """تولید و درج داده‌های تستی (نسخه ۲)"""
-    try:
-        cursor = conn.cursor()
-        
-        # --- ۱. درج استان‌ها ---
-        cursor.executemany('INSERT INTO provinces (id, name, lat, lng) VALUES (?, ?, ?, ?)', PROVINCES)
-        print(f"تعداد {len(PROVINCES)} استان درج شد.")
-        
-        # ... (منطق درج شهرستان‌ها بدون تغییر) ...
-        county_id_counter = 1000
-        endowment_id_counter = 1
-        
-        for p_id, p_name, _, _ in PROVINCES:
-            counties_to_insert = []
+    cursor = conn.cursor()
+    cursor.executemany('INSERT INTO provinces VALUES (?,?,?,?)', PROVINCES)
+    
+    county_id = 1000
+    
+    # نوع رقبات
+    DOC_TYPES = ['takbarg', 'daftarchei', 'nosand']
+    
+    for p in PROVINCES:
+        p_id = p[0]
+        # ایجاد شهرستان‌های فرضی برای هر استان
+        num_counties = random.randint(3, 8)
+        for i in range(num_counties):
+            c_id = county_id + i
+            c_name = f"شهرستان {fake.city()}"
+            c_lat = float(p[2]) + random.uniform(-0.5, 0.5)
+            c_lng = float(p[3]) + random.uniform(-0.5, 0.5)
             
-            if p_name == 'مازندران':
-                for c_id, c_name, c_lat, c_lng in MAZANDARAN_COUNTIES:
-                    counties_to_insert.append((c_id, p_id, c_name, c_lat, c_lng))
-            elif p_name == 'فارس':
-                for c_id, c_name, c_lat, c_lng in FARS_COUNTIES:
-                    counties_to_insert.append((c_id, p_id, c_name, c_lat, c_lng))
-            else:
-                for _ in range(2):
-                    county_id_counter += 1
-                    counties_to_insert.append((
-                        county_id_counter, p_id, fake.city(),
-                        float(fake.latitude()), float(fake.longitude())
-                    ))
+            # تولید داده‌های ناهمگن (مساحت و تعداد متفاوت)
+            # مثلا فاقد سند: تعداد کم ولی مساحت خیلی زیاد (زمین‌های بزرگ تصرف شده)
+            stats = {
+                'takbarg': {'c': random.randint(100, 500), 'a': random.randint(5000, 20000)},
+                'daftarchei': {'c': random.randint(50, 200), 'a': random.randint(10000, 50000)},
+                'nosand': {'c': random.randint(10, 50), 'a': random.randint(100000, 500000)} # مساحت زیاد!
+            }
+            
+            cursor.execute('''INSERT INTO counties VALUES (?,?,?,?,?,?,?,?,?,?,?)''', 
+                           (c_id, p_id, c_name, c_lat, c_lng,
+                            stats['takbarg']['c'], stats['takbarg']['a'],
+                            stats['daftarchei']['c'], stats['daftarchei']['a'],
+                            stats['nosand']['c'], stats['nosand']['a']))
+            
+            # ایجاد موقوفات فقط برای تعدادی از شهرستان‌ها (جهت سرعت)
+            if i < 2: 
+                for _ in range(random.randint(5, 10)):
+                    doc_status = random.choice(["تک برگ", "دفترچه ای", "فاقد سند"])
+                    e_lat = c_lat + random.uniform(-0.02, 0.02)
+                    e_lng = c_lng + random.uniform(-0.02, 0.02)
+                    
+                    cursor.execute('''INSERT INTO endowments (county_id, name, raqabat_count, type, intent, total_income, lat, lng, document_status)
+                                      VALUES (?,?,?,?,?,?,?,?,?)''',
+                                   (c_id, f"موقوفه {fake.last_name()}", 0, random.choice(["متصرفی", "غیرمتصرفی"]), 
+                                    "اطعام و عزاداری", 0, e_lat, e_lng, doc_status))
+                    
+                    eid = cursor.lastrowid
+                    
+                    # ایجاد رقبات برای موقوفه
+                    props = []
+                    prop_count = random.randint(5, 20)
+                    total_inc = 0
+                    
+                    for _ in range(prop_count):
+                        # وضعیت‌هایی که درآمد از دست رفته ایجاد می‌کنند
+                        p_status = random.choice(["عدم شناسایی متصرف", "مذاکره", "دعوای حقوقی", "دارای اجاره نامه معتبر", "اجاره نامه منقضی شده"])
+                        d_status = random.choice(["تک برگ", "دفترچه ای", "فاقد سند"])
+                        
+                        lease_amnt = 0
+                        exp_date = '-'
+                        if p_status == "دارای اجاره نامه معتبر":
+                            lease_amnt = random.randint(10000000, 100000000) # درآمد واقعی
+                            exp_date = "1404/12/29"
+                        
+                        total_inc += lease_amnt
+                        
+                        props.append((eid, f"رقبه {fake.word()}", "تجاری/مسکونی", "فعال", fake.name(), 
+                                      p_status, exp_date, lease_amnt, p_status, d_status, random.randint(100, 5000)))
+                    
+                    cursor.executemany('''INSERT INTO properties (endowment_id, title, land_use, status, user, lease_status, expiry_date, lease_amount, property_status, document_status, area) 
+                                          VALUES (?,?,?,?,?,?,?,?,?,?,?)''', props)
+                    
+                    cursor.execute('UPDATE endowments SET raqabat_count=?, total_income=? WHERE id=?', (prop_count, total_inc, eid))
 
-            for c_id, c_pid, c_name, c_lat, c_lng in counties_to_insert:
-                stats = (
-                    random.randint(10, 200), random.randint(5000, 50000), # تک برگ
-                    random.randint(10, 100), random.randint(2000, 20000), # دفترچه‌ای
-                    random.randint(0, 30) # فاقد سند
-                )
-                cursor.execute(
-                    'INSERT INTO counties (id, province_id, name, lat, lng, s_takbarg_c, s_takbarg_a, s_daftarchei_c, s_daftarchei_a, s_nosand_c) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                    (c_id, c_pid, c_name, c_lat, c_lng) + stats
-                )
-                
-                # --- ۳. درج موقوفات (فقط برای مازندران و فارس) ---
-                if p_name in ['مازندران', 'فارس']:
-                    num_endowments = random.randint(5, 15)
-                    for _ in range(num_endowments):
-                        num_raqabat = random.randint(10, 50)
-                        total_income = 0
-                        
-                        current_endowment_id = endowment_id_counter
-                        endowment_id_counter += 1
-                        
-                        properties_to_insert = []
-                        for _ in range(num_raqabat):
-                            lease_status = random.choice(LEASE_STATUSES)
-                            property_doc_status = random.choice(DOCUMENT_STATUSES) # (امتیاز ۷)
-                            
-                            # (امتیاز ۶) منطق تولید وضعیت رقبه
-                            prop_status = random.choice(PROPERTY_STATUSES)
-                            lease_amount = 0
-                            expiry_date = '-'
-                            user = '-'
-                            
-                            if prop_status == "دارای اجاره نامه معتبر":
-                                lease_status = "دارای اجاره نامه"
-                                lease_amount = random.randint(100000, 10000000)
-                                # (امتیاز ۳) تولید تاریخ شمسی
-                                expiry_date = (jdatetime.date.today() + jdatetime.timedelta(days=random.randint(30, 700))).strftime("%Y/%m/%d")
-                                user = fake.name()
-                                
-                            elif prop_status == "اجاره نامه منقضی شده":
-                                lease_status = "فاقد اجاره نامه"
-                                lease_amount = random.randint(100000, 5000000) # درآمد قبلی
-                                expiry_date = (jdatetime.date.today() - jdatetime.timedelta(days=random.randint(30, 300))).strftime("%Y/%m/%d")
-                                user = fake.name()
-                            
-                            elif prop_status == "عدم شناسایی متصرف":
-                                user = "نامشخص" # (امتیاز ۵)
-                                
-                            else: # مذاکره یا دعوای حقوقی
-                                user = fake.name()
+        county_id += 10
 
-                            total_income += lease_amount # درآمد کل فقط از اجاره‌های معتبر
-                            
-                            properties_to_insert.append((
-                                current_endowment_id,
-                                f"رقبه {random.randint(100, 999)}",
-                                random.choice(RAQABEH_TYPES),
-                                random.choice(["فعال", "غیرفعال"]),
-                                user,
-                                lease_status,
-                                expiry_date,
-                                lease_amount,
-                                prop_status, # <--- فیلد جدید
-                                property_doc_status # <--- فیلد جدید
-                            ))
-                        
-                        cursor.executemany(
-                            'INSERT INTO properties (endowment_id, title, land_use, status, user, lease_status, expiry_date, lease_amount, property_status, document_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                            properties_to_insert
-                        )
-                        
-                        e_lat = c_lat + random.uniform(-0.05, 0.05)
-                        e_lng = c_lng + random.uniform(-0.02, 0.02)
-                        endowment_doc_status = random.choice(DOCUMENT_STATUSES) # (امتیاز ۷)
-                        
-                        cursor.execute(
-                            'INSERT INTO endowments (id, county_id, name, raqabat_count, type, intent, total_income, lat, lng, document_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                            (
-                                current_endowment_id,
-                                c_id,
-                                f"موقوفه {fake.last_name()}",
-                                num_raqabat,
-                                random.choice(ENDOWMENT_TYPES),
-                                random.choice(ENDOWMENT_INTENTS),
-                                total_income,
-                                e_lat,
-                                e_lng,
-                                endowment_doc_status # <--- فیلد جدید
-                            )
-                        )
-        
-        conn.commit()
-        print("داده‌های تستی (نسخه ۲) با موفقیت درج شدند.")
-
-    except Exception as e: # گرفتن خطای عمومی‌تر
-        print(f"خطا در درج داده‌های تستی: {e}")
-        import traceback
-        traceback.print_exc()
-
-def main():
-    if os.path.exists('oqaf.db'):
-        os.remove('oqaf.db')
-        print("دیتابیس قبلی (oqaf.db) حذف شد.")
-        
-    conn = create_connection()
-    if conn is not None:
-        create_tables(conn)
-        generate_mock_data(conn)
-        conn.close()
-        print("عملیات ساخت دیتابیس (نسخه ۲) با موفقیت پایان یافت.")
+    conn.commit()
 
 if __name__ == '__main__':
-    main()
+    if os.path.exists('oqaf.db'): os.remove('oqaf.db')
+    conn = create_connection()
+    create_tables(conn)
+    generate_mock_data(conn)
+    conn.close()
+    print("Database Generated Successfully with High Variance Data.")
