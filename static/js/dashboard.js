@@ -1,12 +1,11 @@
 $(document).ready(function() {
-    // --- تعریف متغیرهای سراسری ---
     let map, mainDataTable = null, chart1_instance = null, chart2_instance = null;
-    let currentLevel = 'country', navigationStack = [], markers = [];
+    let currentLevel = 'country';
+    let markers = [];
 
-    // --- توابع کمکی (این‌ها را بالا آوردیم تا خطا ندهد) ---
-    
+    // --- توابع کمکی ---
     function clearMap() {
-        if (markers.length > 0) {
+        if (markers && markers.length > 0) {
             markers.forEach(m => map.removeLayer(m));
         }
         markers = [];
@@ -20,18 +19,16 @@ $(document).ready(function() {
         }, 300); 
     }
 
-    function showLoading() { 
-        $('#loadingModal').modal('show'); 
-    }
+    function showLoading() { $('#loadingModal').modal('show'); }
 
     function formatArea(val) {
-        if (!val) return '0';
+        if (!val) return '۰';
         if (val > 10000) return (val / 10000).toLocaleString('fa-IR') + ' هکتار';
         return val.toLocaleString('fa-IR') + ' مترمربع';
     }
     
     function formatCurrency(val) {
-        return val ? val.toLocaleString('fa-IR') + ' ریال' : '0';
+        return val ? val.toLocaleString('fa-IR') + ' ریال' : '۰';
     }
 
     function renderBadge(text) {
@@ -42,29 +39,6 @@ $(document).ready(function() {
         return `<span class="badge bg-${color}">${text || '-'}</span>`;
     }
 
-    function createGenericPopup(title, info, btnText, btnClass, id) {
-        return `<div class="text-end"><h6>${title}</h6><p>${info}</p><button class="btn btn-sm btn-primary w-100 ${btnClass}" data-id="${id}" data-name="${title}">${btnText}</button></div>`;
-    }
-
-    function createProvincePopup(p) { return createGenericPopup(p.name, `تک برگ: ${p.takbarg_count}`, "مشاهده شهرها", "popup-btn-cities", p.id); }
-    function createCityPopup(c) { return createGenericPopup(c.name, `درآمد از دست رفته: ${formatCurrency(c.lost_revenue)}`, "مشاهده موقوفات", "popup-btn-endowments", c.id); }
-
-    // --- تنظیمات اولیه ---
-
-    // فعال‌سازی Tooltip بوت‌استرپ
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl)
-    });
-
-    const faLang = {
-        "sEmptyTable": "داده‌ای موجود نیست",
-        "sInfo": "_START_ تا _END_ از _TOTAL_",
-        "sInfoEmpty": "0 از 0",
-        "sInfoFiltered": "(فیلتر شده از _MAX_)",
-        "sZeroRecords": "یافت نشد",
-    };
-
     const customMarkerIcon = L.icon({
         iconUrl: '/static/images/marker-icon.png',
         shadowUrl: '/static/images/marker-shadow.png',
@@ -73,63 +47,50 @@ $(document).ready(function() {
         popupAnchor: [1, -34]
     });
 
+    // --- تنظیمات اولیه ---
     function initDashboard() {
-        try {
-            initMap();
-            initCharts();
-            setupEventHandlers();
-            loadCountryData();
-        } catch (e) {
-            console.error("Init Error:", e);
-            hideLoading();
-        }
+        initMap();
+        initCharts();
+        setupEventHandlers();
+        loadCountryData();
     }
 
     function initMap() {
         map = L.map('map').setView([32.4279, 53.6880], 5);
-        // L.tileLayer(...); // در حالت آفلاین کامنت بماند
+        // برای حالت آفلاین، اگر تایل محلی ندارید، لایه‌ای اضافه نکنید یا از GeoJSON استفاده کنید.
     }
 
     function initCharts() {
         const commonOptions = {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom', labels: { font: { family: 'Vazirmatn' } } } }
+            plugins: { legend: { position: 'bottom', labels: { font: { family: 'Vazir' } } } }
         };
         const c1 = document.getElementById('chart1');
         const c2 = document.getElementById('chart2');
-        if(c1 && typeof Chart !== 'undefined') chart1_instance = new Chart(c1, { type: 'pie', data: {labels:[], datasets:[{data:[]}]}, options: commonOptions });
-        if(c2 && typeof Chart !== 'undefined') chart2_instance = new Chart(c2, { type: 'pie', data: {labels:[], datasets:[{data:[]}]}, options: commonOptions });
+        if(c1) chart1_instance = new Chart(c1, { type: 'pie', data: {labels:[], datasets:[{data:[]}]}, options: commonOptions });
+        if(c2) chart2_instance = new Chart(c2, { type: 'pie', data: {labels:[], datasets:[{data:[]}]}, options: commonOptions });
     }
 
-    // --- مدیریت جدول DataTables ---
     function initOrReloadDataTable(data, columns) {
-        if (mainDataTable) { mainDataTable.destroy(); $('#mainDataTable').empty(); }
+        if ($.fn.DataTable.isDataTable('#mainDataTable')) {
+            $('#mainDataTable').DataTable().destroy();
+            $('#mainDataTable').empty();
+        }
         
         mainDataTable = $('#mainDataTable').DataTable({
             data: data,
             columns: columns,
-            language: faLang,
+            language: { "url": "" /* به جای فایل خارجی، از آبجکت داخلی استفاده کنید */, "sEmptyTable": "داده‌ای یافت نشد" },
             dom: 't', 
-            scrollY: '160px',
+            scrollY: '200px',
             scrollCollapse: true,
-            paging: true,
-            pageLength: 5,
-            info: false, 
-            searching: true, 
+            paging: false,
+            info: false,
+            searching: true,
             initComplete: function() {
-                const tools = $('#tableTools');
-                tools.empty();
-                
-                // دکمه اکسل
-                if ($.fn.dataTable.Buttons) {
-                    new $.fn.dataTable.Buttons(mainDataTable, {
-                        buttons: [{ extend: 'excel', text: '<i class="fas fa-file-excel"></i>', className: 'btn btn-outline-success btn-sm me-2' }]
-                    }).container().appendTo(tools);
-                }
-
-                // فیلد جستجو
-                $('<input type="text" class="form-control form-control-sm" placeholder="جستجو..." style="width: 150px;">')
+                const tools = $('#tableTools').empty();
+                $('<input type="text" class="form-control form-control-sm" placeholder="جستجو...">')
                     .on('keyup', function() { mainDataTable.search(this.value).draw(); })
                     .appendTo(tools);
             }
@@ -137,9 +98,7 @@ $(document).ready(function() {
     }
 
     function addMarkers(items, popupFn) {
-        // اول پاک کن بعد اضافه کن
         clearMap();
-        
         let bounds = [];
         items.forEach(i => {
             if(i.lat && i.lng){
@@ -149,162 +108,111 @@ $(document).ready(function() {
                 bounds.push([i.lat, i.lng]);
             }
         });
-        
-        if (bounds.length > 0) {
-            map.fitBounds(bounds);
-        }
+        if (bounds.length > 0) map.fitBounds(bounds);
     }
 
     // --- توابع بارگذاری داده ---
-
     function loadCountryData() {
         showLoading();
-        currentLevel = 'country';
-        navigationStack = [];
-        
         $.ajax({
-            url: '/api/provinces', method: 'GET',
+            url: '/api/provinces',
             success: function(data) {
+                currentLevel = 'country';
                 displayProvinces(data);
-                updateStats(data, 'آمار کلی کشور');
-                updateBreadcrumb();
+                updateStats(data, 'ایران');
+                updateBreadcrumb([{name: 'ایران'}]);
+                $('#backBtn').hide();
             },
-            error: function(err) { console.error(err); hideLoading(); },
+            error: () => alert('خطا در بارگذاری داده‌های کشور'),
+            complete: hideLoading
+        });
+    }
+
+    function loadCityData(pid, pname) {
+        showLoading();
+        $.ajax({
+            url: `/api/province/${pid}/cities`,
+            success: function(data) {
+                currentLevel = 'province';
+                displayCities(data);
+                updateStats(data, pname);
+                updateBreadcrumb([{name: 'ایران', action: loadCountryData}, {name: pname}]);
+                $('#backBtn').show().off('click').on('click', loadCountryData);
+            },
+            error: () => alert('خطا در بارگذاری شهرستان‌ها'),
+            complete: hideLoading
+        });
+    }
+
+    function loadEndowmentData(pid, cid, cname, pname) {
+        showLoading();
+        $.ajax({
+            url: `/api/province/${pid}/city/${cid}/endowments`,
+            success: function(data) {
+                currentLevel = 'city';
+                displayEndowments(data);
+                updateStats(data, cname, true);
+                updateBreadcrumb([
+                    {name: 'ایران', action: loadCountryData}, 
+                    {name: pname, action: () => loadCityData(pid, pname)}, 
+                    {name: cname}
+                ]);
+                $('#backBtn').off('click').on('click', () => loadCityData(pid, pname));
+            },
             complete: hideLoading
         });
     }
 
     function displayProvinces(data) {
-        // نقشه را در سطح کشور ریست می‌کنیم
-        clearMap();
-        map.setView([32.4279, 53.6880], 5);
-
         const cols = [
             { data: 'name', title: 'استان' },
-            { data: 'takbarg_count', title: 'تک‌برگ(ت)' },
-            { data: 'takbarg_area', title: 'تک‌برگ(م)', render: formatArea },
-            { data: 'nosand_count', title: 'فاقد(ت)' },
-            { data: 'nosand_area', title: 'فاقد(م)', render: formatArea },
-            { data: null, title: 'عملیات', orderable:false, render: () => `<button class="btn btn-sm btn-primary btn-view-cities">انتخاب</button>` }
+            { data: 'takbarg_count', title: 'تک‌برگ' },
+            { data: 'takbarg_area', title: 'مساحت تک‌برگ', render: formatArea },
+            { data: 'nosand_count', title: 'فاقد سند' },
+            { data: null, title: 'عملیات', render: () => `<button class="btn btn-sm btn-primary btn-view-cities">انتخاب</button>` }
         ];
         initOrReloadDataTable(data, cols);
-        addMarkers(data, createProvincePopup);
-        $('#tableTitle').html('جدول استان‌ها');
+        addMarkers(data, (p) => `<div class='text-end'><b>${p.name}</b><br><button class='btn btn-xs btn-primary mt-2' onclick='window.loadCityFromMap(${p.id}, "${p.name}")'>انتخاب</button></div>`);
+        $('#tableTitle').html('لیست استان‌ها');
     }
 
-    function loadCityData(pid, pname) {
-        showLoading();
-        navigationStack.push({ level: 'country', loadFunction: loadCountryData, name: "ایران" });
-        currentLevel = 'province';
-
-        $.ajax({
-            url: `/api/province/${pid}/cities`, method: 'GET',
-            success: function(data) {
-                displayCities(data);
-                updateStats(data, `آمار استان ${pname}`);
-                updateBreadcrumb(navigationStack[0], { name: pname });
-            },
-            complete: hideLoading
-        });
-    }
+    // این تابع برای هندل کردن کلیک از داخل پاپ‌آپ نقشه است
+    window.loadCityFromMap = (id, name) => loadCityData(id, name);
 
     function displayCities(data) {
         const cols = [
             { data: 'name', title: 'شهرستان' },
-            { data: 'takbarg_count', title: 'تک‌برگ' },
-            { data: 'daftarchei_count', title: 'دفترچه‌ای' },
-            { data: 'nosand_count', title: 'فاقد سند' },
             { data: 'lost_revenue', title: 'درآمد از دست رفته', render: formatCurrency },
-            { data: null, title: 'عملیات', orderable:false, render: () => `<button class="btn btn-info text-white btn-sm btn-view-endowments">موقوفات</button>` }
+            { data: null, title: 'عملیات', render: () => `<button class="btn btn-sm btn-info text-white btn-view-endowments">موقوفات</button>` }
         ];
         initOrReloadDataTable(data, cols);
-        addMarkers(data, createCityPopup);
-        $('#tableTitle').html('جدول شهرستان‌ها');
-    }
-
-    function loadEndowmentData(pid, cid, cname) {
-        showLoading();
-        navigationStack.push({ level: 'province', loadFunction: () => loadCityData(pid, navigationStack[navigationStack.length-1].name), name: navigationStack[navigationStack.length-1].name });
-        currentLevel = 'city';
-
-        $.ajax({
-            url: `/api/province/${pid}/city/${cid}/endowments`, method: 'GET',
-            success: function(data) {
-                displayEndowments(data);
-                updateStats(data, `آمار شهرستان ${cname}`, true);
-                updateBreadcrumb(navigationStack[0], navigationStack[1], { name: cname });
-            },
-            complete: hideLoading
-        });
+        addMarkers(data, (c) => `<b>${c.name}</b>`);
+        $('#tableTitle').html('لیست شهرستان‌ها');
     }
 
     function displayEndowments(data) {
         const cols = [
             { data: 'name', title: 'موقوفه' },
-            { data: 'document_status', title: 'سند', render: renderBadge },
-            { data: 'type', title: 'نوع' },
-            { data: 'raqabat_count', title: 'تعداد رقبات' },
-            { data: 'total_income', title: 'درآمد', render: formatCurrency },
-            { data: null, title: 'عملیات', orderable:false, render: (d,t,r) => `<button class="btn btn-warning btn-sm btn-view-properties" data-id="${r.id}">رقبات</button>` }
+            { data: 'document_status', title: 'وضعیت سند', render: renderBadge },
+            { data: 'total_income', title: 'درآمد فعلی', render: formatCurrency }
         ];
         initOrReloadDataTable(data, cols);
-        
-        // مارکر برای موقوفات
-        addMarkers(data, (d)=> createGenericPopup(d.name, `تعداد رقبات: ${d.raqabat_count}`, "رقبات", "popup-btn-properties", d.id));
-        $('#tableTitle').html('جدول موقوفات');
+        addMarkers(data, (e) => `<b>${e.name}</b>`);
+        $('#tableTitle').html('لیست موقوفات');
     }
-
-    function loadPropertyData(pid, cid, eid, ename) {
-        showLoading();
-        navigationStack.push({ level: 'city', loadFunction: () => loadEndowmentData(pid, cid, navigationStack[navigationStack.length-1].name), name: navigationStack[navigationStack.length-1].name });
-        currentLevel = 'endowment';
-
-        $.ajax({
-            url: `/api/province/${pid}/city/${cid}/endowment/${eid}/properties`, method: 'GET',
-            success: function(data) {
-                displayProperties(data.properties);
-                $('#lostRevenueValue').text(formatCurrency(data.lost_revenue));
-                if(data.charts) {
-                    updateChart(chart1_instance, ['تک برگ','دفترچه','فاقد'], data.charts.doc_status);
-                    updateChart(chart2_instance, ['معتبر','منقضی','نامشخص'], data.charts.prop_status);
-                }
-                updateBreadcrumb(navigationStack[0], navigationStack[1], navigationStack[2], { name: ename });
-            },
-            complete: hideLoading
-        });
-    }
-
-    function displayProperties(props) {
-        const cols = [
-            { data: 'title', title: 'عنوان' },
-            { data: 'land_use', title: 'کاربری' },
-            { data: 'lease_status', title: 'اجاره', render: renderBadge },
-            { data: 'user', title: 'متصرف' },
-            { data: 'area', title: 'مساحت', render: formatArea },
-            { data: 'lease_amount', title: 'مبلغ', render: formatCurrency }
-        ];
-        initOrReloadDataTable(props, cols);
-        clearMap(); // رقبات مختصات ندارند، نقشه خالی شود
-        $('#tableTitle').html('جدول رقبات');
-    }
-
-    // --- آمار و نمودار ---
 
     function updateStats(data, title, isEndowLevel=false) {
         let totalLost = data.reduce((s, x) => s + (x.lost_revenue || 0), 0);
         $('#lostRevenueValue').text(formatCurrency(totalLost));
         
-        if(!isEndowLevel) {
-            let sumCount = [0,0,0], sumArea = [0,0,0];
-            data.forEach(x => {
-                if(x.charts) {
-                    x.charts.by_count.forEach((v,i) => sumCount[i]+=v);
-                    x.charts.by_area.forEach((v,i) => sumArea[i]+=v);
-                }
-            });
-            updateChart(chart1_instance, ['تک برگ','دفترچه','فاقد'], sumCount);
-            updateChart(chart2_instance, ['تک برگ','دفترچه','فاقد'], sumArea);
-        }
+        let sumCount = [0,0,0], sumArea = [0,0,0];
+        data.forEach(x => {
+            if(x.charts && x.charts.by_count) x.charts.by_count.forEach((v,i) => sumCount[i]+=v);
+            if(x.charts && x.charts.by_area) x.charts.by_area.forEach((v,i) => sumArea[i]+=v);
+        });
+        
+        updateChart(chart1_instance, ['تک برگ','دفترچه','فاقد'], sumCount);
+        updateChart(chart2_instance, ['تک برگ','دفترچه','فاقد'], sumArea);
     }
 
     function updateChart(chart, labels, data) {
@@ -315,45 +223,93 @@ $(document).ready(function() {
         chart.update();
     }
 
-    function updateBreadcrumb(...items) {
-        const bc = $('#breadcrumb');
-        bc.empty();
-        const root = { name: 'ایران', fn: loadCountryData };
-        
-        const addLi = (name, fn, active) => {
-            const li = $(`<li class="breadcrumb-item ${active ? 'active' : ''}"></li>`);
-            if(!active) $(`<a href="#">${name}</a>`).click(fn).appendTo(li);
-            else li.text(name);
+    function updateBreadcrumb(steps) {
+        const bc = $('#breadcrumb').empty();
+        steps.forEach((step, i) => {
+            const isLast = i === steps.length - 1;
+            const li = $(`<li class="breadcrumb-item ${isLast ? 'active' : ''}"></li>`);
+            if (step.action && !isLast) {
+                $('<a href="#"></a>').text(step.name).on('click', (e) => { e.preventDefault(); step.action(); }).appendTo(li);
+            } else {
+                li.text(step.name);
+            }
             bc.append(li);
-        };
-
-        addLi(root.name, root.fn, items.length === 0);
-        items.forEach((item, i) => addLi(item.name, window[`navFunc${i+1}`], i === items.length - 1));
-    }
-    
-    function handleBackNavigation() {
-        if(navigationStack.length) navigationStack.pop().loadFunction();
+        });
     }
 
     function setupEventHandlers() {
-        $('#backBtn').click(handleBackNavigation);
-        
-        $('#mainDataTable tbody').on('click', 'button.btn-view-cities', function() {
+        $('#mainDataTable').on('click', '.btn-view-cities', function() {
             const data = mainDataTable.row($(this).parents('tr')).data();
             loadCityData(data.id, data.name);
         });
-        $('#mainDataTable tbody').on('click', 'button.btn-view-endowments', function() {
+        
+        $('#mainDataTable').on('click', '.btn-view-endowments', function() {
             const data = mainDataTable.row($(this).parents('tr')).data();
-            loadEndowmentData(data.province_id, data.id, data.name);
+            // پیدا کردن نام استان از روی Breadcrumb یا ذخیره آن در مرحله قبل
+            const pname = $('#breadcrumb li:nth-child(2)').text(); 
+            loadEndowmentData(data.province_id, data.id, data.name, pname);
         });
-        $('#mainDataTable tbody').on('click', 'button.btn-view-properties', function() {
-            const data = mainDataTable.row($(this).parents('tr')).data();
-            loadPropertyData(data.province_id, data.county_id, data.id, data.name);
-        });
-
-        $('#map').on('click', '.popup-btn-cities', function() { loadCityData($(this).data('id'), $(this).data('name')); });
-        $('#map').on('click', '.popup-btn-endowments', function() { loadEndowmentData($(this).data('province-id'), $(this).data('id'), $(this).data('name')); });
     }
+
+    function initMap() {
+        // ایجاد نقشه و تنظیم نمای اولیه روی مرکز ایران
+        map = L.map('map').setView([32.4279, 53.6880], 5);
+    
+        // بارگذاری فایل GeoJSON استان‌ها
+        $.getJSON('/static/iran_provinces.json', function(data) {
+            L.geoJSON(data, {
+                style: {
+                    color: "#2c3e50", 
+                    weight: 1.5,
+                    fillColor: "#f8f9fa",
+                    fillOpacity: 0.4
+                },
+                onEachFeature: function (feature, layer) {
+                    // نمایش نام استان در تولتیپ
+                    const provinceName = feature.properties.name || feature.properties.NAME_1;
+                    layer.bindTooltip(provinceName, { direction: 'center', permanent: false });
+    
+                    // --- قابلیت کلیک تعاملی ---
+                    layer.on('click', function (e) {
+                        // پیدا کردن ID استان از روی دیتابیس با استفاده از نام آن
+                        // ما در اینجا فرض می‌کنیم دیتای استان‌ها قبلاً لود شده است
+                        const provinceData = allProvincesData.find(p => p.name === provinceName);
+                        
+                        if (provinceData) {
+                            loadCityData(provinceData.id, provinceData.name);
+                        } else {
+                            console.warn("استان یافت نشد: " + provinceName);
+                        }
+                    });
+    
+                    // تغییر رنگ هنگام حرکت موس (Hover)
+                    layer.on('mouseover', function () { this.setStyle({ fillOpacity: 0.7, fillColor: "#d1ecf1" }); });
+                    layer.on('mouseout', function () { this.setStyle({ fillOpacity: 0.4, fillColor: "#f8f9fa" }); });
+                }
+            }).addTo(map);
+        });
+    }
+    
+    // برای اینکه بتوانیم در نقشه به IDها دسترسی داشته باشیم، 
+    // یک متغیر سراسری برای ذخیره دیتای دریافتی از API تعریف می‌کنیم
+    let allProvincesData = [];
+    
+    function loadCountryData() {
+        showLoading();
+        $.ajax({
+            url: '/api/provinces',
+            success: function(data) {
+                allProvincesData = data; // ذخیره دیتا برای استفاده در نقشه
+                currentLevel = 'country';
+                displayProvinces(data);
+                updateStats(data, 'ایران');
+                updateBreadcrumb([{name: 'ایران'}]);
+                $('#backBtn').hide();
+            },
+            complete: hideLoading
+        });
+    }
+
 
     initDashboard();
 });
