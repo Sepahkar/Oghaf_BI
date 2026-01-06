@@ -1,315 +1,201 @@
 $(document).ready(function() {
     let map, mainDataTable = null, chart1_instance = null, chart2_instance = null;
-    let currentLevel = 'country';
-    let markers = [];
+    let allProvincesData = [];
 
-    // --- توابع کمکی ---
-    function clearMap() {
-        if (markers && markers.length > 0) {
-            markers.forEach(m => map.removeLayer(m));
-        }
-        markers = [];
-    }
-
-    function hideLoading() { 
-        setTimeout(() => { 
-            $('#loadingModal').modal('hide'); 
-            $('body').removeClass('modal-open'); 
-            $('.modal-backdrop').remove(); 
-        }, 300); 
-    }
-
-    function showLoading() { $('#loadingModal').modal('show'); }
-
-    function formatArea(val) {
-        if (!val) return '۰';
-        if (val > 10000) return (val / 10000).toLocaleString('fa-IR') + ' هکتار';
-        return val.toLocaleString('fa-IR') + ' مترمربع';
-    }
-    
-    function formatCurrency(val) {
-        return val ? val.toLocaleString('fa-IR') + ' ریال' : '۰';
-    }
-
-    function renderBadge(text) {
-        let color = 'secondary';
-        if (text && (text.includes('تک برگ') || text.includes('معتبر'))) color = 'success';
-        if (text && (text.includes('دفترچه') || text.includes('منقضی'))) color = 'warning text-dark';
-        if (text && (text.includes('فاقد') || text.includes('نامشخص'))) color = 'danger';
-        return `<span class="badge bg-${color}">${text || '-'}</span>`;
-    }
-
-    const customMarkerIcon = L.icon({
-        iconUrl: '/static/images/marker-icon.png',
-        shadowUrl: '/static/images/marker-shadow.png',
-        iconSize: [25, 41],
-        iconAnchor: [12, 41],
-        popupAnchor: [1, -34]
-    });
-
-    // --- تنظیمات اولیه ---
+    // --- تنظیمات اولیه نقشه و نمودار ---
     function initDashboard() {
         initMap();
         initCharts();
-        setupEventHandlers();
         loadCountryData();
     }
 
     function initMap() {
         map = L.map('map').setView([32.4279, 53.6880], 5);
-        // برای حالت آفلاین، اگر تایل محلی ندارید، لایه‌ای اضافه نکنید یا از GeoJSON استفاده کنید.
+        // لود نقشه آفلاین
+        $.getJSON('/static/iran_provinces.json', function(data) {
+            L.geoJSON(data, {
+                style: { color: "#2c3e50", weight: 1.5, fillColor: "#ffffff", fillOpacity: 0.2 },
+                onEachFeature: function (feature, layer) {
+                    const pName = feature.properties.name || feature.properties.NAME_1;
+                    layer.bindTooltip(pName);
+                    layer.on('click', function() {
+                        const pData = allProvincesData.find(p => p.name === pName);
+                        if (pData) loadCityData(pData.id, pData.name);
+                    });
+                }
+            }).addTo(map);
+        }).fail(function() { console.error("فایل iran_provinces.json یافت نشد!"); });
     }
 
     function initCharts() {
-        const commonOptions = {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom', labels: { font: { family: 'Vazir' } } } }
+        const opt = { 
+            responsive: true, 
+            maintainAspectRatio: false, 
+            plugins: { legend: { position: 'bottom', labels: { font: { family: 'Vazirmatn' } } } } 
         };
-        const c1 = document.getElementById('chart1');
-        const c2 = document.getElementById('chart2');
-        if(c1) chart1_instance = new Chart(c1, { type: 'pie', data: {labels:[], datasets:[{data:[]}]}, options: commonOptions });
-        if(c2) chart2_instance = new Chart(c2, { type: 'pie', data: {labels:[], datasets:[{data:[]}]}, options: commonOptions });
+        // استفاده از jQuery برای انتخاب المنت
+        const ctx1 = $('#chart1')[0];
+        const ctx2 = $('#chart2')[0];
+        if(ctx1) chart1_instance = new Chart(ctx1, { type: 'pie', data: { labels: ['تک برگ', 'دفترچه', 'فاقد'], datasets: [{ data: [0,0,0], backgroundColor: ['#28a745', '#ffc107', '#dc3545'] }] }, options: opt });
+        if(ctx2) chart2_instance = new Chart(ctx2, { type: 'pie', data: { labels: ['تک برگ', 'دفترچه', 'فاقد'], datasets: [{ data: [0,0,0], backgroundColor: ['#28a745', '#ffc107', '#dc3545'] }] }, options: opt });
     }
 
+    // --- توابع کمکی ---
+    function showLoading() { $('#loadingModal').modal('show'); }
+    function hideLoading() { setTimeout(() => { $('#loadingModal').modal('hide'); }, 300); }
+    
+    function formatCurrency(val) { return val ? val.toLocaleString('fa-IR') + ' ریال' : '۰'; }
+    function formatArea(val) { return val ? (val > 10000 ? (val / 10000).toLocaleString('fa-IR') + ' هکتار' : val.toLocaleString('fa-IR') + ' م.م') : '۰'; }
+
+    // --- مدیریت جداول (حل مشکل اسکرول) ---
     function initOrReloadDataTable(data, columns) {
-        if ($.fn.DataTable.isDataTable('#mainDataTable')) {
-            $('#mainDataTable').DataTable().destroy();
+        if (mainDataTable) {
+            mainDataTable.destroy();
             $('#mainDataTable').empty();
         }
-        
         mainDataTable = $('#mainDataTable').DataTable({
             data: data,
             columns: columns,
-            language: { "url": "" /* به جای فایل خارجی، از آبجکت داخلی استفاده کنید */, "sEmptyTable": "داده‌ای یافت نشد" },
-            dom: 't', 
-            scrollY: '200px',
+            dom: 't',
+            scrollY: '250px', // مقدار اسکرول عمودی
             scrollCollapse: true,
             paging: false,
-            info: false,
             searching: true,
+            language: { "sEmptyTable": "داده‌ای یافت نشد" },
             initComplete: function() {
-                const tools = $('#tableTools').empty();
+                $('#tableTools').empty();
                 $('<input type="text" class="form-control form-control-sm" placeholder="جستجو...">')
                     .on('keyup', function() { mainDataTable.search(this.value).draw(); })
-                    .appendTo(tools);
+                    .appendTo('#tableTools');
             }
         });
     }
 
-    function addMarkers(items, popupFn) {
-        clearMap();
-        let bounds = [];
-        items.forEach(i => {
-            if(i.lat && i.lng){
-                let m = L.marker([i.lat, i.lng], {icon: customMarkerIcon}).addTo(map);
-                m.bindPopup(popupFn(i));
-                markers.push(m);
-                bounds.push([i.lat, i.lng]);
-            }
-        });
-        if (bounds.length > 0) map.fitBounds(bounds);
-    }
-
-    // --- توابع بارگذاری داده ---
+    // --- بارگذاری داده‌ها (API) ---
     function loadCountryData() {
         showLoading();
-        $.ajax({
-            url: '/api/provinces',
-            success: function(data) {
-                currentLevel = 'country';
-                displayProvinces(data);
-                updateStats(data, 'ایران');
-                updateBreadcrumb([{name: 'ایران'}]);
-                $('#backBtn').hide();
-            },
-            error: () => alert('خطا در بارگذاری داده‌های کشور'),
-            complete: hideLoading
-        });
+        $.get('/api/provinces', function(data) {
+            allProvincesData = data;
+            const cols = [
+                { data: 'name', title: 'استان' },
+                { data: 'takbarg_count', title: 'تک‌برگ(ت)' },
+                { data: 'nosand_count', title: 'فاقد(ت)' },
+                { data: 'nosand_area', title: 'فاقد(م)', render: formatArea },
+                { data: null, title: 'عملیات', render: () => '<button class="btn btn-sm btn-primary btn-view-cities">انتخاب</button>' }
+            ];
+            initOrReloadDataTable(data, cols);
+            updateStats(data, 'ایران');
+            updateBreadcrumb([]);
+            $('#backBtn').hide();
+        }).always(hideLoading);
     }
 
     function loadCityData(pid, pname) {
         showLoading();
-        $.ajax({
-            url: `/api/province/${pid}/cities`,
-            success: function(data) {
-                currentLevel = 'province';
-                displayCities(data);
-                updateStats(data, pname);
-                updateBreadcrumb([{name: 'ایران', action: loadCountryData}, {name: pname}]);
-                $('#backBtn').show().off('click').on('click', loadCountryData);
-            },
-            error: () => alert('خطا در بارگذاری شهرستان‌ها'),
-            complete: hideLoading
-        });
+        $.get(`/api/province/${pid}/cities`, function(data) {
+            const cols = [
+                { data: 'name', title: 'شهرستان' },
+                { data: 'lost_revenue', title: 'درآمد از دست رفته', render: formatCurrency },
+                { data: null, title: 'عملیات', render: () => '<button class="btn btn-sm btn-info text-white btn-view-endowments">موقوفات</button>' }
+            ];
+            initOrReloadDataTable(data, cols);
+            updateStats(data, pname);
+            updateBreadcrumb([{ name: pname, fn: () => loadCityData(pid, pname) }]);
+            $('#backBtn').show().off('click').on('click', loadCountryData);
+        }).always(hideLoading);
     }
 
-    function loadEndowmentData(pid, cid, cname, pname) {
+    function loadEndowmentData(pid, cid, cname) {
         showLoading();
-        $.ajax({
-            url: `/api/province/${pid}/city/${cid}/endowments`,
-            success: function(data) {
-                currentLevel = 'city';
-                displayEndowments(data);
-                updateStats(data, cname, true);
-                updateBreadcrumb([
-                    {name: 'ایران', action: loadCountryData}, 
-                    {name: pname, action: () => loadCityData(pid, pname)}, 
-                    {name: cname}
-                ]);
-                $('#backBtn').off('click').on('click', () => loadCityData(pid, pname));
-            },
-            complete: hideLoading
-        });
+        $.get(`/api/province/${pid}/city/${cid}/endowments`, function(data) {
+            const cols = [
+                { data: 'name', title: 'موقوفه' },
+                { data: 'total_income', title: 'درآمد', render: formatCurrency },
+                { data: null, title: 'عملیات', render: (d,t,r) => `<button class="btn btn-warning btn-sm btn-view-properties" data-pid="${pid}" data-cid="${cid}" data-id="${r.id}" data-name="${r.name}">رقبات</button>` }
+            ];
+            initOrReloadDataTable(data, cols);
+            updateStats(data, cname, true);
+            updateBreadcrumb([{ name: 'استان', fn: () => loadCountryData() }, { name: cname }]);
+            $('#backBtn').off('click').on('click', () => loadCityData(pid, ''));
+        }).always(hideLoading);
     }
 
-    function displayProvinces(data) {
-        const cols = [
-            { data: 'name', title: 'استان' },
-            { data: 'takbarg_count', title: 'تک‌برگ' },
-            { data: 'takbarg_area', title: 'مساحت تک‌برگ', render: formatArea },
-            { data: 'nosand_count', title: 'فاقد سند' },
-            { data: null, title: 'عملیات', render: () => `<button class="btn btn-sm btn-primary btn-view-cities">انتخاب</button>` }
-        ];
-        initOrReloadDataTable(data, cols);
-        addMarkers(data, (p) => `<div class='text-end'><b>${p.name}</b><br><button class='btn btn-xs btn-primary mt-2' onclick='window.loadCityFromMap(${p.id}, "${p.name}")'>انتخاب</button></div>`);
-        $('#tableTitle').html('لیست استان‌ها');
+    function loadPropertyData(pid, cid, eid, ename) {
+        showLoading();
+        $.get(`/api/province/${pid}/city/${cid}/endowment/${eid}/properties`, function(data) {
+            const cols = [
+                { data: 'title', title: 'عنوان' },
+                { data: 'land_use', title: 'کاربری' },
+                { data: 'area', title: 'مساحت', render: formatArea },
+                { data: 'lease_amount', title: 'مبلغ اجاره', render: formatCurrency }
+            ];
+            initOrReloadDataTable(data.properties, cols);
+            $('#lostRevenueValue').text(formatCurrency(data.lost_revenue));
+            if(data.charts) {
+                chart1_instance.data.datasets[0].data = data.charts.doc_status;
+                chart1_instance.update();
+                chart2_instance.data.datasets[0].data = data.charts.prop_status;
+                chart2_instance.update();
+            }
+            updateBreadcrumb([{ name: 'شهرستان', fn: () => loadCityData(pid, '') }, { name: ename }]);
+            $('#backBtn').off('click').on('click', () => loadEndowmentData(pid, cid, ''));
+        }).always(hideLoading);
     }
 
-    // این تابع برای هندل کردن کلیک از داخل پاپ‌آپ نقشه است
-    window.loadCityFromMap = (id, name) => loadCityData(id, name);
-
-    function displayCities(data) {
-        const cols = [
-            { data: 'name', title: 'شهرستان' },
-            { data: 'lost_revenue', title: 'درآمد از دست رفته', render: formatCurrency },
-            { data: null, title: 'عملیات', render: () => `<button class="btn btn-sm btn-info text-white btn-view-endowments">موقوفات</button>` }
-        ];
-        initOrReloadDataTable(data, cols);
-        addMarkers(data, (c) => `<b>${c.name}</b>`);
-        $('#tableTitle').html('لیست شهرستان‌ها');
-    }
-
-    function displayEndowments(data) {
-        const cols = [
-            { data: 'name', title: 'موقوفه' },
-            { data: 'document_status', title: 'وضعیت سند', render: renderBadge },
-            { data: 'total_income', title: 'درآمد فعلی', render: formatCurrency }
-        ];
-        initOrReloadDataTable(data, cols);
-        addMarkers(data, (e) => `<b>${e.name}</b>`);
-        $('#tableTitle').html('لیست موقوفات');
-    }
-
-    function updateStats(data, title, isEndowLevel=false) {
+    // --- مدیریت آمار و نمودارها (حل مشکل عدم نمایش آمار) ---
+    function updateStats(data, title, isEndowLevel = false) {
         let totalLost = data.reduce((s, x) => s + (x.lost_revenue || 0), 0);
         $('#lostRevenueValue').text(formatCurrency(totalLost));
         
-        let sumCount = [0,0,0], sumArea = [0,0,0];
-        data.forEach(x => {
-            if(x.charts && x.charts.by_count) x.charts.by_count.forEach((v,i) => sumCount[i]+=v);
-            if(x.charts && x.charts.by_area) x.charts.by_area.forEach((v,i) => sumArea[i]+=v);
-        });
-        
-        updateChart(chart1_instance, ['تک برگ','دفترچه','فاقد'], sumCount);
-        updateChart(chart2_instance, ['تک برگ','دفترچه','فاقد'], sumArea);
+        if(!isEndowLevel) {
+            let sumCount = [0, 0, 0], sumArea = [0, 0, 0];
+            data.forEach(x => {
+                if(x.charts) {
+                    sumCount[0] += x.charts.by_count[0];
+                    sumCount[1] += x.charts.by_count[1];
+                    sumCount[2] += x.charts.by_count[2];
+                    sumArea[0] += x.charts.by_area[0];
+                    sumArea[1] += x.charts.by_area[1];
+                    sumArea[2] += x.charts.by_area[2];
+                }
+            });
+            chart1_instance.data.datasets[0].data = sumCount;
+            chart1_instance.update();
+            chart2_instance.data.datasets[0].data = sumArea;
+            chart2_instance.update();
+        }
     }
 
-    function updateChart(chart, labels, data) {
-        if(!chart) return;
-        chart.data.labels = labels;
-        chart.data.datasets[0].data = data;
-        chart.data.datasets[0].backgroundColor = ['#28a745', '#ffc107', '#dc3545'];
-        chart.update();
-    }
-
-    function updateBreadcrumb(steps) {
+    function updateBreadcrumb(items) {
         const bc = $('#breadcrumb').empty();
-        steps.forEach((step, i) => {
-            const isLast = i === steps.length - 1;
-            const li = $(`<li class="breadcrumb-item ${isLast ? 'active' : ''}"></li>`);
-            if (step.action && !isLast) {
-                $('<a href="#"></a>').text(step.name).on('click', (e) => { e.preventDefault(); step.action(); }).appendTo(li);
+        const addLi = (name, fn, active) => {
+            const li = $(`<li class="breadcrumb-item ${active ? 'active' : ''}"></li>`);
+            if(!active && fn) {
+                $('<a href="#"></a>').text(name).on('click', function(e) { e.preventDefault(); fn(); }).appendTo(li);
             } else {
-                li.text(step.name);
+                li.text(name);
             }
             bc.append(li);
-        });
+        };
+        addLi('ایران', loadCountryData, items.length === 0);
+        items.forEach((it, i) => addLi(it.name, it.fn, i === items.length - 1));
     }
 
-    function setupEventHandlers() {
-        $('#mainDataTable').on('click', '.btn-view-cities', function() {
-            const data = mainDataTable.row($(this).parents('tr')).data();
-            loadCityData(data.id, data.name);
-        });
-        
-        $('#mainDataTable').on('click', '.btn-view-endowments', function() {
-            const data = mainDataTable.row($(this).parents('tr')).data();
-            // پیدا کردن نام استان از روی Breadcrumb یا ذخیره آن در مرحله قبل
-            const pname = $('#breadcrumb li:nth-child(2)').text(); 
-            loadEndowmentData(data.province_id, data.id, data.name, pname);
-        });
-    }
+    // --- مدیریت رویدادها (Event Delegation) ---
+    $(document).on('click', '.btn-view-cities', function() {
+        const d = mainDataTable.row($(this).closest('tr')).data();
+        loadCityData(d.id, d.name);
+    });
 
-    function initMap() {
-        // ایجاد نقشه و تنظیم نمای اولیه روی مرکز ایران
-        map = L.map('map').setView([32.4279, 53.6880], 5);
-    
-        // بارگذاری فایل GeoJSON استان‌ها
-        $.getJSON('/static/iran_provinces.json', function(data) {
-            L.geoJSON(data, {
-                style: {
-                    color: "#2c3e50", 
-                    weight: 1.5,
-                    fillColor: "#f8f9fa",
-                    fillOpacity: 0.4
-                },
-                onEachFeature: function (feature, layer) {
-                    // نمایش نام استان در تولتیپ
-                    const provinceName = feature.properties.name || feature.properties.NAME_1;
-                    layer.bindTooltip(provinceName, { direction: 'center', permanent: false });
-    
-                    // --- قابلیت کلیک تعاملی ---
-                    layer.on('click', function (e) {
-                        // پیدا کردن ID استان از روی دیتابیس با استفاده از نام آن
-                        // ما در اینجا فرض می‌کنیم دیتای استان‌ها قبلاً لود شده است
-                        const provinceData = allProvincesData.find(p => p.name === provinceName);
-                        
-                        if (provinceData) {
-                            loadCityData(provinceData.id, provinceData.name);
-                        } else {
-                            console.warn("استان یافت نشد: " + provinceName);
-                        }
-                    });
-    
-                    // تغییر رنگ هنگام حرکت موس (Hover)
-                    layer.on('mouseover', function () { this.setStyle({ fillOpacity: 0.7, fillColor: "#d1ecf1" }); });
-                    layer.on('mouseout', function () { this.setStyle({ fillOpacity: 0.4, fillColor: "#f8f9fa" }); });
-                }
-            }).addTo(map);
-        });
-    }
-    
-    // برای اینکه بتوانیم در نقشه به IDها دسترسی داشته باشیم، 
-    // یک متغیر سراسری برای ذخیره دیتای دریافتی از API تعریف می‌کنیم
-    let allProvincesData = [];
-    
-    function loadCountryData() {
-        showLoading();
-        $.ajax({
-            url: '/api/provinces',
-            success: function(data) {
-                allProvincesData = data; // ذخیره دیتا برای استفاده در نقشه
-                currentLevel = 'country';
-                displayProvinces(data);
-                updateStats(data, 'ایران');
-                updateBreadcrumb([{name: 'ایران'}]);
-                $('#backBtn').hide();
-            },
-            complete: hideLoading
-        });
-    }
+    $(document).on('click', '.btn-view-endowments', function() {
+        const d = mainDataTable.row($(this).closest('tr')).data();
+        loadEndowmentData(d.province_id, d.id, d.name);
+    });
 
+    $(document).on('click', '.btn-view-properties', function() {
+        const btn = $(this);
+        loadPropertyData(btn.data('pid'), btn.data('cid'), btn.data('id'), btn.data('name'));
+    });
 
     initDashboard();
 });
