@@ -4,6 +4,7 @@
     src: url('../font/vazir.woff2') format('woff2');
     font-weight: normal;
 }
+
 @font-face {
     font-family: 'Vazirmatn';
     src: url('../font/vazir-bold.woff2') format('woff2');
@@ -13,18 +14,33 @@
 body {
     font-family: 'Vazirmatn', sans-serif !important;
     background-color: #eef2f5;
-    overflow-y: auto; 
+    overflow-y: auto;
     overflow-x: hidden;
 }
 
 /* Navbar */
 .navbar {
-    background: #1e3c72; 
+    background: #1e3c72;
     height: 70px;
 }
-.navbar-logo { height: 45px; filter: brightness(0) invert(1); }
-.navbar-title { color: white; font-size: 1.2rem; font-weight: bold; }
-.user-avatar { width: 40px; height: 40px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.5); }
+
+.navbar-logo {
+    height: 45px;
+    filter: brightness(0) invert(1);
+}
+
+.navbar-title {
+    color: white;
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.5);
+}
 
 /* Sidebar */
 .lost-revenue-box {
@@ -34,7 +50,8 @@ body {
 
 /* Map */
 #map {
-    background-color: #e9ecef; /* رنگ پس‌زمینه خاکستری برای حالت آفلاین */
+    background-color: #e9ecef;
+    /* رنگ پس‌زمینه خاکستری برای حالت آفلاین */
 }
 
 /* Table Fixes */
@@ -61,4 +78,15 @@ div.dataTables_scrollBody {
     border-bottom: 1px solid #ddd;
 }
 
-.dataTables_filter { display: none; }
+.dataTables_filter {
+    display: none;
+}
+
+/* اصلاح تداخل اسکرول */
+.dataTables_scrollBody {
+    overflow-x: hidden !important;
+}
+
+#mainDataTable_wrapper {
+    width: 100% !important;
+}
