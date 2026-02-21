@@ -4,20 +4,20 @@ const REVENUE_SETTINGS = {
         max: 30000000000,
         color: '#28a745',
         label: 'کم'
-    }, // تا ۳۰ میلیارد - سبز
+    },
     MEDIUM: {
         max: 70000000000,
         color: '#ffc107',
         label: 'متوسط'
-    }, // ۳۰ تا ۷۰ میلیارد - زرد
+    },
     HIGH: {
         color: '#dc3545',
         label: 'زیاد'
-    } // بالای ۷۰ میلیارد - قرمز
+    }
 };
 
-// متغیری برای ذخیره لایه GeoJSON جهت دسترسی بعدی
 let provinceGeoLayer = null;
+
 $(document).ready(function() {
     // --- ۱. متغیرهای سراسری و تنظیمات اولیه ---
     let map, mainDataTable = null,
@@ -28,7 +28,6 @@ $(document).ready(function() {
         markers = [],
         allProvincesData = [];
 
-    // تنظیم مسیر آیکون‌های Leaflet برای حالت آفلاین
     const customMarkerIcon = L.icon({
         iconUrl: '/static/images/marker-icon.png',
         shadowUrl: '/static/images/marker-shadow.png',
@@ -37,7 +36,7 @@ $(document).ready(function() {
         popupAnchor: [1, -34]
     });
 
-    // --- ۲. توابع مدیریت رابط کاربری و لودینگ (نسخه ضد قفل) ---
+    // --- ۲. توابع مدیریت رابط کاربری و لودینگ ---
     function showLoading() {
         $('#loadingModal').modal('show');
     }
@@ -46,7 +45,6 @@ $(document).ready(function() {
         setTimeout(() => {
             const modalEl = $('#loadingModal');
             modalEl.modal('hide');
-            // باز کردن اجباری اسکرول صفحه و حذف لایه‌های تیره
             $('body').removeClass('modal-open').css('overflow', 'auto');
             $('.modal-backdrop').remove();
         }, 400);
@@ -62,6 +60,8 @@ $(document).ready(function() {
         return val ? val.toLocaleString('fa-IR') + ' ریال' : '۰';
     }
 
+    const formatNum = (num) => new Number(num || 0).toLocaleString('fa-IR');
+
     function renderBadge(text) {
         let color = 'secondary';
         if (text && (text.includes('تک برگ') || text.includes('معتبر'))) color = 'success';
@@ -70,8 +70,7 @@ $(document).ready(function() {
         return `<span class="badge bg-${color}">${text || '-'}</span>`;
     }
 
-    // --- ۳. توابع ساخت پاپ‌آپ ---
-
+    // --- ۳. توابع ساخت پاپ‌آپ (ظاهر جدید و زیبا) ---
     function createGenericPopup(title, content, btnText, btnClass, id, extraAttr = "") {
         return `
             <div class="text-end" style="min-width: 200px;">
@@ -83,53 +82,83 @@ $(document).ready(function() {
             </div>`;
     }
 
-    // پاپ‌آپ کامل استان با آمار دقیق
     function createProvincePopup(p) {
-        const info = `
-            <div class="mb-1"><b>سند تک‌برگ:</b> ${p.takbarg_count.toLocaleString('fa-IR')} مورد</div>
-            <div class="mb-1"><b>سند دفترچه‌ای:</b> ${p.daftarchei_count.toLocaleString('fa-IR')} مورد</div>
-            <div class="mb-1"><b>فاقد سند:</b> ${p.nosand_count.toLocaleString('fa-IR')} مورد</div>
-            <hr class="my-1">
-            <div class="text-danger fw-bold"><b>زیان احتمالی:</b><br>${formatCurrency(p.lost_revenue)}</div>
-        `;
-        return createGenericPopup(p.name, info, "مشاهده شهرستان‌ها", "popup-btn-cities", p.id);
+        return `
+            <div class="custom-popup">
+                <h6><i class="fas fa-map-marked-alt text-primary"></i> استان ${p.name}</h6>
+                <ul>
+                    <li>
+                        <span><i class="fas fa-file-contract text-success"></i> سند تک‌برگ:</span>
+                        <strong>${formatNum(p.takbarg_count)} <small>مورد</small></strong>
+                    </li>
+                    <li>
+                        <span><i class="fas fa-book text-warning"></i> سند دفترچه‌ای:</span>
+                        <strong>${formatNum(p.daftarchei_count)} <small>مورد</small></strong>
+                    </li>
+                    <li>
+                        <span><i class="fas fa-exclamation-triangle text-danger"></i> فاقد سند:</span>
+                        <strong>${formatNum(p.nosand_count)} <small>مورد</small></strong>
+                    </li>
+                </ul>
+                <div class="loss-box">
+                    <span><i class="fas fa-coins"></i> زیان احتمالی:</span>
+                    <strong>${formatNum(p.lost_revenue)} ریال</strong>
+                </div>
+                <button class="btn btn-sm btn-primary w-100 mt-3 popup-btn-cities" data-id="${p.id}" data-name="${p.name}">
+                    مشاهده شهرستان‌ها
+                </button>
+            </div>`;
     }
 
     function createCityPopup(c) {
-        const info = `<div class="text-danger"><b>درآمد از دست رفته:</b><br>${formatCurrency(c.lost_revenue)}</div>`;
-        return createGenericPopup(c.name, info, "مشاهده موقوفات", "popup-btn-endowments", c.id);
+        return `
+            <div class="custom-popup">
+                <h6><i class="fas fa-city text-info"></i> ${c.name}</h6>
+                <div class="loss-box mt-2">
+                    <span><i class="fas fa-coins"></i> زیان احتمالی:</span>
+                    <strong>${formatNum(c.lost_revenue)} ریال</strong>
+                </div>
+                <button class="btn btn-sm btn-primary w-100 mt-3 popup-btn-endowments" data-pid="${c.province_id}" data-id="${c.id}" data-name="${c.name}">
+                    مشاهده موقوفات
+                </button>
+            </div>`;
     }
 
     function updateMapColors() {
         if (!provinceGeoLayer || !allProvincesData.length) return;
-
         provinceGeoLayer.eachLayer(function(layer) {
             const pName = (layer.feature.properties.name || layer.feature.properties.NAME_1 || "").trim();
             const pData = allProvincesData.find(p => p.name.trim() === pName);
-
-            if (pData) {
-                const color = getColorByRevenue(pData.lost_revenue);
-                layer.setStyle({
-                    fillColor: color,
-                    fillOpacity: 0.6
-                });
-            }
+            // در حالت عکس آفلاین، شاید نخواهیم رنگ‌ها خیلی پررنگ باشند. این بخش در صورت نیاز قابل تغییر است
         });
     }
 
-    // --- ۴. تنظیمات نقشه و نمودار ---
+    // --- ۴. تنظیمات نقشه آفلاین و نمودار ---
     function initMap() {
         if (map) return;
         map = L.map('map').setView([32.4279, 53.6880], 5);
 
-        // بارگذاری فایل GeoJSON استان‌ها
+        // -- جایگزینی اینترنت با عکس آفلاین ایران --
+        const imageUrl = '/static/images/IranMap.jpg';
+        const imageBounds = [
+            [25.0, 44.0],
+            [40.0, 64.0]
+        ]; // مختصات تقریبی مرزهای ایران
+
+        L.imageOverlay(imageUrl, imageBounds).addTo(map);
+
+        // قفل کردن نقشه
+        map.setMaxBounds(imageBounds);
+        map.options.minZoom = 5;
+
+        // بارگذاری خطوط مرزی استان‌ها روی عکس
         $.getJSON('/static/iran_provinces.json', function(data) {
             provinceGeoLayer = L.geoJSON(data, {
                 style: {
-                    color: "#2c3e50",
+                    color: "#2c3e50", // رنگ خطوط مرزی
                     weight: 1.5,
                     fillColor: "#ffffff",
-                    fillOpacity: 0.4
+                    fillOpacity: 0.1 // شفافیت کم تا تصویر زیر مشخص باشد
                 },
                 onEachFeature: function(feature, layer) {
                     const pName = (feature.properties.name || feature.properties.NAME_1 || "").trim();
@@ -185,7 +214,7 @@ $(document).ready(function() {
         });
     }
 
-    // --- ۵. مدیریت جداول (حل مشکل اسکرول داخلی) ---
+    // --- ۵. مدیریت جداول ---
     function initOrReloadDataTable(data, columns) {
         if (mainDataTable) {
             mainDataTable.destroy();
@@ -213,9 +242,7 @@ $(document).ready(function() {
     }
 
     function addMarkers(items, popupFn) {
-        if (markers.length > 0) {
-            markers.forEach(m => map.removeLayer(m));
-        }
+        if (markers.length > 0) markers.forEach(m => map.removeLayer(m));
         markers = [];
         let bounds = [];
         items.forEach(i => {
@@ -235,7 +262,6 @@ $(document).ready(function() {
     }
 
     // --- ۶. توابع بارگذاری داده‌ها (API) ---
-
     function loadCountryData() {
         showLoading();
         currentLevel = 'country';
@@ -249,11 +275,13 @@ $(document).ready(function() {
                 },
                 {
                     data: 'takbarg_count',
-                    title: 'تک‌برگ'
+                    title: 'تک‌برگ',
+                    render: formatNum
                 },
                 {
                     data: 'nosand_count',
-                    title: 'فاقد سند'
+                    title: 'فاقد سند',
+                    render: formatNum
                 },
                 {
                     data: null,
@@ -265,7 +293,7 @@ $(document).ready(function() {
             initOrReloadDataTable(data, cols);
             updateStats(data, 'ایران');
             updateBreadcrumb();
-            addMarkers(data, createProvincePopup); // فراخوانی صحیح تابع
+            addMarkers(data, createProvincePopup);
         }).always(hideLoading);
     }
 
@@ -374,9 +402,7 @@ $(document).ready(function() {
             }, {
                 name: ename
             }]);
-            if (markers.length > 0) {
-                markers.forEach(m => map.removeLayer(m));
-            }
+            if (markers.length > 0) markers.forEach(m => map.removeLayer(m));
         }).always(hideLoading);
     }
 

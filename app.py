@@ -86,12 +86,13 @@ def get_endowments(pid, cid):
         prop_stats = {"valid": 0, "expired": 0, "others": 0}
         
         for p in props:
-            p_status = p.get('property_status', '')
+            # اضافه کردن or '' برای جلوگیری از خطای Null
+            p_status = p.get('property_status') or '' 
             if p_status in ["عدم شناسایی متصرف", "اجاره نامه منقضی شده", "دعوای حقوقی"]:
                 est_val = p.get('estimated_value') or 10000000000
                 lost_rev += (est_val * 0.05) 
             
-            d_status = p.get('document_status', '')
+            d_status = p.get('document_status') or ''
             if "تک برگ" in d_status: doc_stats["takbarg"] += 1
             elif "دفترچه" in d_status: doc_stats["daftarchei"] += 1
             else: doc_stats["nosand"] += 1
@@ -99,7 +100,8 @@ def get_endowments(pid, cid):
             if "معتبر" in p_status: prop_stats["valid"] += 1
             elif "منقضی" in p_status: prop_stats["expired"] += 1
             else: prop_stats["others"] += 1
-
+            
+            
         e['lost_revenue'] = int(lost_rev)
         e['charts'] = {
             "doc_status": [doc_stats["takbarg"], doc_stats["daftarchei"], doc_stats["nosand"]],
@@ -118,12 +120,13 @@ def get_properties(pid, cid, eid):
     lease_stats = [0, 0, 0]
     
     for p in props:
-        p_status = p.get('property_status', '')
+        # اضافه کردن or '' برای جلوگیری از خطای Null
+        p_status = p.get('property_status') or ''
         if p_status in ["عدم شناسایی متصرف", "اجاره نامه منقضی شده", "دعوای حقوقی"]:
             est_val = p.get('estimated_value') or 10000000000
             lost_rev += (est_val * 0.05)
         
-        d_status = p.get('document_status', '')
+        d_status = p.get('document_status') or ''
         if "تک برگ" in d_status: doc_stats[0] += 1
         elif "دفترچه" in d_status: doc_stats[1] += 1
         else: doc_stats[2] += 1
@@ -131,7 +134,8 @@ def get_properties(pid, cid, eid):
         if "معتبر" in p_status: lease_stats[0] += 1
         elif "منقضی" in p_status: lease_stats[1] += 1
         else: lease_stats[2] += 1
-
+        
+        
     return jsonify({
         "properties": props,
         "lost_revenue": int(lost_rev),
