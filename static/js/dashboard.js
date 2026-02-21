@@ -1,5 +1,25 @@
+// تنظیمات مربوط به دسته‌بندی درآمد از دست رفته (اعداد به ریال هستند)
+const REVENUE_SETTINGS = {
+    LOW: {
+        max: 30000000000,
+        color: '#28a745',
+        label: 'کم'
+    }, // تا ۳۰ میلیارد - سبز
+    MEDIUM: {
+        max: 70000000000,
+        color: '#ffc107',
+        label: 'متوسط'
+    }, // ۳۰ تا ۷۰ میلیارد - زرد
+    HIGH: {
+        color: '#dc3545',
+        label: 'زیاد'
+    } // بالای ۷۰ میلیارد - قرمز
+};
+
+// متغیری برای ذخیره لایه GeoJSON جهت دسترسی بعدی
+let provinceGeoLayer = null;
 $(document).ready(function() {
-    // --- ۱. تعریف متغیرهای سراسری و تنظیمات اولیه ---
+    // --- ۱. متغیرهای سراسری و تنظیمات اولیه ---
     let map, mainDataTable = null,
         chart1_instance = null,
         chart2_instance = null;
@@ -8,14 +28,7 @@ $(document).ready(function() {
         markers = [],
         allProvincesData = [];
 
-    // تنظیم مسیر آیکون‌های Leaflet برای حالت آفلاین (جلوگیری از ناپدید شدن پین‌ها)
-    delete L.Icon.Default.prototype._getIconUrl;
-    L.Icon.Default.mergeOptions({
-        iconRetinaUrl: '/static/images/marker-icon.png',
-        iconUrl: '/static/images/marker-icon.png',
-        shadowUrl: '/static/images/marker-shadow.png',
-    });
-
+    // تنظیم مسیر آیکون‌های Leaflet برای حالت آفلاین
     const customMarkerIcon = L.icon({
         iconUrl: '/static/images/marker-icon.png',
         shadowUrl: '/static/images/marker-shadow.png',
@@ -24,24 +37,25 @@ $(document).ready(function() {
         popupAnchor: [1, -34]
     });
 
-    // --- ۲. توابع مدیریت رابط کاربری و لودینگ ---
+    // --- ۲. توابع مدیریت رابط کاربری و لودینگ (نسخه ضد قفل) ---
     function showLoading() {
         $('#loadingModal').modal('show');
     }
 
     function hideLoading() {
         setTimeout(() => {
-            $('#loadingModal').modal('hide');
-            // حل مشکل اسکرول کل صفحه با حذف کلاس قفل‌کننده بدنه
+            const modalEl = $('#loadingModal');
+            modalEl.modal('hide');
+            // باز کردن اجباری اسکرول صفحه و حذف لایه‌های تیره
             $('body').removeClass('modal-open').css('overflow', 'auto');
             $('.modal-backdrop').remove();
-        }, 300);
+        }, 400);
     }
 
     function formatArea(val) {
         if (!val) return '۰';
         if (val > 10000) return (val / 10000).toLocaleString('fa-IR') + ' هکتار';
-        return val.toLocaleString('fa-IR') + ' مترمربع';
+        return val.toLocaleString('fa-IR') + ' م.م';
     }
 
     function formatCurrency(val) {
@@ -56,22 +70,70 @@ $(document).ready(function() {
         return `<span class="badge bg-${color}">${text || '-'}</span>`;
     }
 
-    // --- ۳. مدیریت نقشه و نمودارها ---
+    // --- ۳. توابع ساخت پاپ‌آپ ---
+
+    function createGenericPopup(title, content, btnText, btnClass, id, extraAttr = "") {
+        return `
+            <div class="text-end" style="min-width: 200px;">
+                <h6 class="border-bottom pb-2 fw-bold text-primary">${title}</h6>
+                <div class="my-2 small">${content}</div>
+                <button class="btn btn-sm btn-primary w-100 ${btnClass}" data-id="${id}" data-name="${title}" ${extraAttr}>
+                    ${btnText}
+                </button>
+            </div>`;
+    }
+
+    // پاپ‌آپ کامل استان با آمار دقیق
+    function createProvincePopup(p) {
+        const info = `
+            <div class="mb-1"><b>سند تک‌برگ:</b> ${p.takbarg_count.toLocaleString('fa-IR')} مورد</div>
+            <div class="mb-1"><b>سند دفترچه‌ای:</b> ${p.daftarchei_count.toLocaleString('fa-IR')} مورد</div>
+            <div class="mb-1"><b>فاقد سند:</b> ${p.nosand_count.toLocaleString('fa-IR')} مورد</div>
+            <hr class="my-1">
+            <div class="text-danger fw-bold"><b>زیان احتمالی:</b><br>${formatCurrency(p.lost_revenue)}</div>
+        `;
+        return createGenericPopup(p.name, info, "مشاهده شهرستان‌ها", "popup-btn-cities", p.id);
+    }
+
+    function createCityPopup(c) {
+        const info = `<div class="text-danger"><b>درآمد از دست رفته:</b><br>${formatCurrency(c.lost_revenue)}</div>`;
+        return createGenericPopup(c.name, info, "مشاهده موقوفات", "popup-btn-endowments", c.id);
+    }
+
+    function updateMapColors() {
+        if (!provinceGeoLayer || !allProvincesData.length) return;
+
+        provinceGeoLayer.eachLayer(function(layer) {
+            const pName = (layer.feature.properties.name || layer.feature.properties.NAME_1 || "").trim();
+            const pData = allProvincesData.find(p => p.name.trim() === pName);
+
+            if (pData) {
+                const color = getColorByRevenue(pData.lost_revenue);
+                layer.setStyle({
+                    fillColor: color,
+                    fillOpacity: 0.6
+                });
+            }
+        });
+    }
+
+    // --- ۴. تنظیمات نقشه و نمودار ---
     function initMap() {
+        if (map) return;
         map = L.map('map').setView([32.4279, 53.6880], 5);
-        // بارگذاری مرز استان‌ها از فایل محلی برای حالت آفلاین
+
+        // بارگذاری فایل GeoJSON استان‌ها
         $.getJSON('/static/iran_provinces.json', function(data) {
-            L.geoJSON(data, {
+            provinceGeoLayer = L.geoJSON(data, {
                 style: {
                     color: "#2c3e50",
                     weight: 1.5,
                     fillColor: "#ffffff",
-                    fillOpacity: 0.2
+                    fillOpacity: 0.4
                 },
                 onEachFeature: function(feature, layer) {
                     const pName = (feature.properties.name || feature.properties.NAME_1 || "").trim();
                     layer.bindTooltip(pName);
-                    // قابلیت کلیک روی نقشه برای ورود به سطح استان
                     layer.on('click', function(e) {
                         L.DomEvent.stopPropagation(e);
                         const pData = allProvincesData.find(p => p.name.trim() === pName);
@@ -79,11 +141,11 @@ $(document).ready(function() {
                     });
                 }
             }).addTo(map);
-        }).fail(() => console.error("فایل iran_provinces.json پیدا نشد!"));
+        });
     }
 
     function initCharts() {
-        const commonOptions = {
+        const opt = {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
@@ -97,55 +159,55 @@ $(document).ready(function() {
                 }
             }
         };
-        const c1 = $('#chart1')[0];
-        const c2 = $('#chart2')[0];
+        const c1 = $('#chart1')[0],
+            c2 = $('#chart2')[0];
         if (c1) chart1_instance = new Chart(c1, {
             type: 'pie',
             data: {
-                labels: [],
+                labels: ['تک برگ', 'دفترچه', 'فاقد'],
                 datasets: [{
-                    data: []
+                    data: [0, 0, 0],
+                    backgroundColor: ['#28a745', '#ffc107', '#dc3545']
                 }]
             },
-            options: commonOptions
+            options: opt
         });
         if (c2) chart2_instance = new Chart(c2, {
             type: 'pie',
             data: {
-                labels: [],
+                labels: ['تک برگ', 'دفترچه', 'فاقد'],
                 datasets: [{
-                    data: []
+                    data: [0, 0, 0],
+                    backgroundColor: ['#28a745', '#ffc107', '#dc3545']
                 }]
             },
-            options: commonOptions
+            options: opt
         });
     }
 
-    // --- ۴. مدیریت جداول DataTables (حل مشکل اسکرول) ---
+    // --- ۵. مدیریت جداول (حل مشکل اسکرول داخلی) ---
     function initOrReloadDataTable(data, columns) {
         if (mainDataTable) {
             mainDataTable.destroy();
             $('#mainDataTable').empty();
         }
-
         mainDataTable = $('#mainDataTable').DataTable({
             data: data,
             columns: columns,
-            language: {
-                "sEmptyTable": "داده‌ای موجود نیست"
-            },
             dom: 't',
-            scrollY: '300px', // ارتفاع ثابت برای فعال شدن اسکرول داخلی جدول
+            scrollY: '280px',
             scrollCollapse: true,
             paging: false,
             searching: true,
+            language: {
+                "sEmptyTable": "داده‌ای موجود نیست"
+            },
             initComplete: function() {
                 const tools = $('#tableTools').empty();
                 $('<input type="text" class="form-control form-control-sm" placeholder="جستجو..." style="width: 150px;">')
                     .on('keyup', function() {
                         mainDataTable.search(this.value).draw();
-                    })
-                    .appendTo(tools);
+                    }).appendTo(tools);
             }
         });
     }
@@ -166,16 +228,19 @@ $(document).ready(function() {
                 bounds.push([i.lat, i.lng]);
             }
         });
-        if (bounds.length > 0) map.fitBounds(bounds);
+        if (bounds.length > 0) map.fitBounds(bounds, {
+            padding: [40, 40],
+            maxZoom: 12
+        });
     }
 
-    // --- ۵. توابع بارگذاری داده‌ها (API) ---
+    // --- ۶. توابع بارگذاری داده‌ها (API) ---
+
     function loadCountryData() {
         showLoading();
         currentLevel = 'country';
         navigationStack = [];
         $('#backBtn').hide();
-
         $.get('/api/provinces', function(data) {
             allProvincesData = data;
             const cols = [{
@@ -184,16 +249,11 @@ $(document).ready(function() {
                 },
                 {
                     data: 'takbarg_count',
-                    title: 'تک‌برگ(ت)'
+                    title: 'تک‌برگ'
                 },
                 {
                     data: 'nosand_count',
-                    title: 'فاقد(ت)'
-                },
-                {
-                    data: 'nosand_area',
-                    title: 'فاقد(م)',
-                    render: formatArea
+                    title: 'فاقد سند'
                 },
                 {
                     data: null,
@@ -203,9 +263,9 @@ $(document).ready(function() {
                 }
             ];
             initOrReloadDataTable(data, cols);
-            updateStats(data, 'آمار کلی کشور');
-            updateBreadcrumb([]);
-            addMarkers(data, (p) => `<div class="text-end"><h6>${p.name}</h6><button class="btn btn-sm btn-primary w-100 popup-btn-cities" data-id="${p.id}" data-name="${p.name}">مشاهده شهرها</button></div>`);
+            updateStats(data, 'ایران');
+            updateBreadcrumb();
+            addMarkers(data, createProvincePopup); // فراخوانی صحیح تابع
         }).always(hideLoading);
     }
 
@@ -217,7 +277,6 @@ $(document).ready(function() {
         }];
         currentLevel = 'province';
         $('#backBtn').show();
-
         $.get(`/api/province/${pid}/cities`, function(data) {
             const cols = [{
                     data: 'name',
@@ -241,7 +300,7 @@ $(document).ready(function() {
                 name: pname,
                 fn: () => loadCityData(pid, pname)
             }]);
-            addMarkers(data, (c) => `<div class="text-end"><h6>${c.name}</h6><button class="btn btn-sm btn-info text-white w-100 popup-btn-endowments" data-pid="${pid}" data-id="${c.id}" data-name="${c.name}">مشاهده موقوفات</button></div>`);
+            addMarkers(data, createCityPopup);
         }).always(hideLoading);
     }
 
@@ -259,12 +318,8 @@ $(document).ready(function() {
                     render: renderBadge
                 },
                 {
-                    data: 'raqabat_count',
-                    title: 'تعداد رقبات'
-                },
-                {
                     data: 'total_income',
-                    title: 'درآمد',
+                    title: 'درآمد فعلی',
                     render: formatCurrency
                 },
                 {
@@ -282,7 +337,7 @@ $(document).ready(function() {
             }, {
                 name: cname
             }]);
-            addMarkers(data, (d) => `<div class="text-end"><h6>${d.name}</h6><button class="btn btn-sm btn-warning w-100 popup-btn-properties" data-pid="${pid}" data-cid="${cid}" data-id="${d.id}" data-name="${d.name}">مشاهده رقبات</button></div>`);
+            addMarkers(data, (d) => createGenericPopup(d.name, `تعداد رقبات: ${d.raqabat_count}`, "رقبات", "popup-btn-properties", d.id, `data-pid="${pid}" data-cid="${cid}"`));
         }).always(hideLoading);
     }
 
@@ -293,10 +348,6 @@ $(document).ready(function() {
             const cols = [{
                     data: 'title',
                     title: 'عنوان'
-                },
-                {
-                    data: 'land_use',
-                    title: 'کاربری'
                 },
                 {
                     data: 'area',
@@ -312,12 +363,14 @@ $(document).ready(function() {
             initOrReloadDataTable(data.properties, cols);
             $('#lostRevenueValue').text(formatCurrency(data.lost_revenue));
             if (data.charts) {
-                updateChart(chart1_instance, ['تک برگ', 'دفترچه', 'فاقد'], data.charts.doc_status);
-                updateChart(chart2_instance, ['معتبر', 'منقضی', 'نامشخص'], data.charts.prop_status);
+                chart1_instance.data.datasets[0].data = data.charts.doc_status;
+                chart1_instance.update();
+                chart2_instance.data.datasets[0].data = data.charts.prop_status;
+                chart2_instance.update();
             }
             updateBreadcrumb([{
                 name: "شهرستان",
-                fn: () => loadCityData(pid, "")
+                fn: () => loadEndowmentData(pid, cid, "")
             }, {
                 name: ename
             }]);
@@ -327,12 +380,11 @@ $(document).ready(function() {
         }).always(hideLoading);
     }
 
-    // --- ۶. مدیریت آمار و تعاملات ---
+    // --- ۷. مدیریت آمار و تعاملات ---
     function updateStats(data, title, isEndowLevel = false) {
         let totalLost = data.reduce((s, x) => s + (x.lost_revenue || 0), 0);
         $('#lostRevenueValue').text(formatCurrency(totalLost));
         $('#tableTitle').html(`<i class="fas fa-list me-2 text-primary"></i>${title}`);
-
         if (!isEndowLevel) {
             let sumCount = [0, 0, 0],
                 sumArea = [0, 0, 0];
@@ -342,31 +394,22 @@ $(document).ready(function() {
                     x.charts.by_area.forEach((v, i) => sumArea[i] += v);
                 }
             });
-            updateChart(chart1_instance, ['تک برگ', 'دفترچه', 'فاقد'], sumCount);
-            updateChart(chart2_instance, ['تک برگ', 'دفترچه', 'فاقد'], sumArea);
+            chart1_instance.data.datasets[0].data = sumCount;
+            chart1_instance.update();
+            chart2_instance.data.datasets[0].data = sumArea;
+            chart2_instance.update();
         }
-    }
-
-    function updateChart(chart, labels, data) {
-        if (!chart) return;
-        chart.data.labels = labels;
-        chart.data.datasets[0].data = data;
-        chart.data.datasets[0].backgroundColor = ['#28a745', '#ffc107', '#dc3545'];
-        chart.update();
     }
 
     function updateBreadcrumb(items = []) {
         const bc = $('#breadcrumb').empty();
         const addLi = (name, fn, active) => {
             const li = $(`<li class="breadcrumb-item ${active ? 'active' : ''}"></li>`);
-            if (!active && fn) {
-                $('<a href="#"></a>').text(name).on('click', function(e) {
-                    e.preventDefault();
-                    fn();
-                }).appendTo(li);
-            } else {
-                li.text(name);
-            }
+            if (!active && fn) $('<a href="#"></a>').text(name).on('click', (e) => {
+                e.preventDefault();
+                fn();
+            }).appendTo(li);
+            else li.text(name);
             bc.append(li);
         };
         addLi('ایران', loadCountryData, items.length === 0);
@@ -377,24 +420,18 @@ $(document).ready(function() {
         $('#backBtn').on('click', function() {
             if (navigationStack.length) navigationStack.pop().fn();
         });
-
-        // حل مشکل کلیک دکمه‌های جدول با Delegation
         $(document).on('click', '.btn-view-cities', function() {
             const d = mainDataTable.row($(this).closest('tr')).data();
             loadCityData(d.id, d.name);
         });
-
         $(document).on('click', '.btn-view-endowments', function() {
             const d = mainDataTable.row($(this).closest('tr')).data();
             loadEndowmentData(d.province_id, d.id, d.name);
         });
-
         $(document).on('click', '.btn-view-properties', function() {
             const btn = $(this);
             loadPropertyData(btn.data('pid'), btn.data('cid'), btn.data('id'), btn.data('name'));
         });
-
-        // کلیک روی دکمه‌های پاپ‌آپ نقشه
         $(document).on('click', '.popup-btn-cities', function() {
             loadCityData($(this).data('id'), $(this).data('name'));
         });
@@ -406,9 +443,9 @@ $(document).ready(function() {
         });
     }
 
-    // --- ۷. اجرای نهایی ---
-    initMap();
+    // --- ۸. اجرای نهایی ---
     initCharts();
+    initMap();
     setupEventHandlers();
     loadCountryData();
 });
