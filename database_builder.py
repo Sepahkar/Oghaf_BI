@@ -134,6 +134,402 @@ REAL_COUNTY_COORDS = {
     'یزد': (31.897, 54.367), 'میبد': (32.234, 54.018), 'اردکان': (32.311, 53.998), 'بافق': (31.604, 55.402), 'مهریز': (31.583, 54.439)
 }
 
+COUNTY_STATS= {
+    "آذربایجان شرقی": {
+        "تبریز": {"total_endowments": 3896, "endowments_has_doc": 3428, "endowments_no_doc": 468, "total_properties": 35042, "properties_has_doc": 30441, "properties_no_doc": 4601},
+        "مراغه": {"total_endowments": 1459, "endowments_has_doc": 600, "endowments_no_doc": 859, "total_properties": 13139, "properties_has_doc": 4701, "properties_no_doc": 8438},
+        "مرند": {"total_endowments": 1459, "endowments_has_doc": 601, "endowments_no_doc": 858, "total_properties": 13139, "properties_has_doc": 4704, "properties_no_doc": 8435},
+        "میانه": {"total_endowments": 973, "endowments_has_doc": 401, "endowments_no_doc": 572, "total_properties": 8759, "properties_has_doc": 3136, "properties_no_doc": 5623},
+        "اهر": {"total_endowments": 973, "endowments_has_doc": 401, "endowments_no_doc": 572, "total_properties": 8759, "properties_has_doc": 3136, "properties_no_doc": 5623},
+        "سایر": {"total_endowments": 973, "endowments_has_doc": 401, "endowments_no_doc": 572, "total_properties": 8759, "properties_has_doc": 3136, "properties_no_doc": 5623}
+    },
+    "آذربایجان غربی": {
+        "ارومیه": {"total_endowments": 2464, "endowments_has_doc": 2066, "endowments_no_doc": 398, "total_properties": 12320, "properties_has_doc": 10045, "properties_no_doc": 2275},
+        "خوی": {"total_endowments": 1056, "endowments_has_doc": 265, "endowments_no_doc": 791, "total_properties": 5280, "properties_has_doc": 757, "properties_no_doc": 4523},
+        "مهاباد": {"total_endowments": 1056, "endowments_has_doc": 266, "endowments_no_doc": 790, "total_properties": 5280, "properties_has_doc": 759, "properties_no_doc": 4521},
+        "بوکان": {"total_endowments": 704, "endowments_has_doc": 178, "endowments_no_doc": 526, "total_properties": 3520, "properties_has_doc": 506, "properties_no_doc": 3014},
+        "میاندوآب": {"total_endowments": 704, "endowments_has_doc": 178, "endowments_no_doc": 526, "total_properties": 3520, "properties_has_doc": 506, "properties_no_doc": 3014},
+        "سایر": {"total_endowments": 1056, "endowments_has_doc": 297, "endowments_no_doc": 759, "total_properties": 5280, "properties_has_doc": 936, "properties_no_doc": 4344}
+    },
+    "اردبیل": {
+        "اردبیل": {"total_endowments": 1476, "endowments_has_doc": 1268, "endowments_no_doc": 208, "total_properties": 5904, "properties_has_doc": 4880, "properties_no_doc": 1024},
+        "پارس آباد": {"total_endowments": 656, "endowments_has_doc": 161, "endowments_no_doc": 495, "total_properties": 2624, "properties_has_doc": 175, "properties_no_doc": 2449},
+        "مشگین شهر": {"total_endowments": 492, "endowments_has_doc": 121, "endowments_no_doc": 371, "total_properties": 1968, "properties_has_doc": 132, "properties_no_doc": 1836},
+        "خلخال": {"total_endowments": 328, "endowments_has_doc": 81, "endowments_no_doc": 247, "total_properties": 1312, "properties_has_doc": 88, "properties_no_doc": 1224},
+        "سایر": {"total_endowments": 328, "endowments_has_doc": 107, "endowments_no_doc": 221, "total_properties": 1312, "properties_has_doc": 261, "properties_no_doc": 1051}
+    },
+    "اصفهان": {
+        "اصفهان": {"total_endowments": 6802, "endowments_has_doc": 6021, "endowments_no_doc": 781, "total_properties": 81633, "properties_has_doc": 69584, "properties_no_doc": 12049},
+        "کاشان": {"total_endowments": 2551, "endowments_has_doc": 1118, "endowments_no_doc": 1433, "total_properties": 30612, "properties_has_doc": 8513, "properties_no_doc": 22099},
+        "نجف آباد": {"total_endowments": 1700, "endowments_has_doc": 745, "endowments_no_doc": 955, "total_properties": 20408, "properties_has_doc": 5675, "properties_no_doc": 14733},
+        "خمینی شهر": {"total_endowments": 1700, "endowments_has_doc": 745, "endowments_no_doc": 955, "total_properties": 20408, "properties_has_doc": 5675, "properties_no_doc": 14733},
+        "شهرضا": {"total_endowments": 1700, "endowments_has_doc": 745, "endowments_no_doc": 955, "total_properties": 20408, "properties_has_doc": 5676, "properties_no_doc": 14732},
+        "سایر": {"total_endowments": 2554, "endowments_has_doc": 1124, "endowments_no_doc": 1430, "total_properties": 30615, "properties_has_doc": 8516, "properties_no_doc": 22099}
+    },
+    "البرز": {
+        "کرج": {"total_endowments": 983, "endowments_has_doc": 883, "endowments_no_doc": 100, "total_properties": 10813, "properties_has_doc": 9124, "properties_no_doc": 1689},
+        "ساوجبلاغ": {"total_endowments": 393, "endowments_has_doc": 167, "endowments_no_doc": 226, "total_properties": 4325, "properties_has_doc": 494, "properties_no_doc": 3831},
+        "نظرآباد": {"total_endowments": 294, "endowments_has_doc": 124, "endowments_no_doc": 170, "total_properties": 3243, "properties_has_doc": 370, "properties_no_doc": 2873},
+        "سایر": {"total_endowments": 296, "endowments_has_doc": 126, "endowments_no_doc": 170, "total_properties": 3245, "properties_has_doc": 370, "properties_no_doc": 2875}
+    },
+    "ایلام": {
+        "ایلام": {"total_endowments": 419, "endowments_has_doc": 249, "endowments_no_doc": 170, "total_properties": 5010, "properties_has_doc": 1705, "properties_no_doc": 3305},
+        "مهران": {"total_endowments": 125, "endowments_has_doc": 0, "endowments_no_doc": 125, "total_properties": 1503, "properties_has_doc": 0, "properties_no_doc": 1503},
+        "دهلران": {"total_endowments": 125, "endowments_has_doc": 0, "endowments_no_doc": 125, "total_properties": 1503, "properties_has_doc": 0, "properties_no_doc": 1503},
+        "ایوان": {"total_endowments": 83, "endowments_has_doc": 0, "endowments_no_doc": 83, "total_properties": 1002, "properties_has_doc": 0, "properties_no_doc": 1002},
+        "سایر": {"total_endowments": 83, "endowments_has_doc": 0, "endowments_no_doc": 83, "total_properties": 1002, "properties_has_doc": 0, "properties_no_doc": 1002}
+    },
+    "بوشهر": {
+        "بوشهر": {"total_endowments": 1302, "endowments_has_doc": 990, "endowments_no_doc": 312, "total_properties": 5211, "properties_has_doc": 2113, "properties_no_doc": 3098},
+        "دشتستان": {"total_endowments": 651, "endowments_has_doc": 0, "endowments_no_doc": 651, "total_properties": 2605, "properties_has_doc": 0, "properties_no_doc": 2605},
+        "گناوه": {"total_endowments": 488, "endowments_has_doc": 0, "endowments_no_doc": 488, "total_properties": 1954, "properties_has_doc": 0, "properties_no_doc": 1954},
+        "سایر": {"total_endowments": 816, "endowments_has_doc": 0, "endowments_no_doc": 816, "total_properties": 3258, "properties_has_doc": 0, "properties_no_doc": 3258}
+    },
+    "تهران": {
+        "تهران": {"total_endowments": 5150, "endowments_has_doc": 4580, "endowments_no_doc": 570, "total_properties": 51505, "properties_has_doc": 44806, "properties_no_doc": 6699},
+        "ری": {"total_endowments": 1545, "endowments_has_doc": 583, "endowments_no_doc": 962, "total_properties": 15451, "properties_has_doc": 4181, "properties_no_doc": 11270},
+        "شمیرانات": {"total_endowments": 1030, "endowments_has_doc": 389, "endowments_no_doc": 641, "total_properties": 10301, "properties_has_doc": 2788, "properties_no_doc": 7513},
+        "شهریار": {"total_endowments": 1030, "endowments_has_doc": 389, "endowments_no_doc": 641, "total_properties": 10301, "properties_has_doc": 2788, "properties_no_doc": 7513},
+        "سایر": {"total_endowments": 1546, "endowments_has_doc": 561, "endowments_no_doc": 985, "total_properties": 15452, "properties_has_doc": 3998, "properties_no_doc": 11454}
+    },
+    "چهارمحال و بختیاری": {
+        "شهرکرد": {"total_endowments": 795, "endowments_has_doc": 581, "endowments_no_doc": 214, "total_properties": 9542, "properties_has_doc": 4759, "properties_no_doc": 4783},
+        "بروجن": {"total_endowments": 397, "endowments_has_doc": 0, "endowments_no_doc": 397, "total_properties": 4771, "properties_has_doc": 0, "properties_no_doc": 4771},
+        "لردگان": {"total_endowments": 298, "endowments_has_doc": 0, "endowments_no_doc": 298, "total_properties": 3578, "properties_has_doc": 0, "properties_no_doc": 3578},
+        "سایر": {"total_endowments": 498, "endowments_has_doc": 0, "endowments_no_doc": 498, "total_properties": 5965, "properties_has_doc": 0, "properties_no_doc": 5965}
+    },
+    "خراسان جنوبی": {
+        "بیرجند": {"total_endowments": 4254, "endowments_has_doc": 3075, "endowments_no_doc": 1179, "total_properties": 21270, "properties_has_doc": 11652, "properties_no_doc": 9618},
+        "قائن": {"total_endowments": 2127, "endowments_has_doc": 0, "endowments_no_doc": 2127, "total_properties": 10635, "properties_has_doc": 0, "properties_no_doc": 10635},
+        "طبس": {"total_endowments": 1595, "endowments_has_doc": 0, "endowments_no_doc": 1595, "total_properties": 7976, "properties_has_doc": 0, "properties_no_doc": 7976},
+        "سایر": {"total_endowments": 2659, "endowments_has_doc": 0, "endowments_no_doc": 2659, "total_properties": 13294, "properties_has_doc": 0, "properties_no_doc": 13294}
+    },
+    "خراسان رضوی": {
+        "مشهد": {"total_endowments": 11028, "endowments_has_doc": 10174, "endowments_no_doc": 854, "total_properties": 99255, "properties_has_doc": 87522, "properties_no_doc": 11733},
+        "نیشابور": {"total_endowments": 4135, "endowments_has_doc": 2137, "endowments_no_doc": 1998, "total_properties": 37220, "properties_has_doc": 9811, "properties_no_doc": 27409},
+        "سبزوار": {"total_endowments": 2757, "endowments_has_doc": 1425, "endowments_no_doc": 1332, "total_properties": 24813, "properties_has_doc": 6540, "properties_no_doc": 18273},
+        "تربت حیدریه": {"total_endowments": 2757, "endowments_has_doc": 1425, "endowments_no_doc": 1332, "total_properties": 24813, "properties_has_doc": 6540, "properties_no_doc": 18273},
+        "سایر": {"total_endowments": 6894, "endowments_has_doc": 3509, "endowments_no_doc": 3385, "total_properties": 62038, "properties_has_doc": 15656, "properties_no_doc": 46382}
+    },
+    "خراسان شمالی": {
+        "بجنورد": {"total_endowments": 2390, "endowments_has_doc": 1695, "endowments_no_doc": 695, "total_properties": 14340, "properties_has_doc": 6010, "properties_no_doc": 8330},
+        "شیروان": {"total_endowments": 1195, "endowments_has_doc": 0, "endowments_no_doc": 1195, "total_properties": 7170, "properties_has_doc": 0, "properties_no_doc": 7170},
+        "اسفراین": {"total_endowments": 896, "endowments_has_doc": 0, "endowments_no_doc": 896, "total_properties": 5377, "properties_has_doc": 0, "properties_no_doc": 5377},
+        "سایر": {"total_endowments": 1494, "endowments_has_doc": 0, "endowments_no_doc": 1494, "total_properties": 8963, "properties_has_doc": 0, "properties_no_doc": 8963}
+    },
+    "خوزستان": {
+        "اهواز": {"total_endowments": 2227, "endowments_has_doc": 1896, "endowments_no_doc": 331, "total_properties": 6682, "properties_has_doc": 5464, "properties_no_doc": 1218},
+        "دزفول": {"total_endowments": 1272, "endowments_has_doc": 404, "endowments_no_doc": 868, "total_properties": 3818, "properties_has_doc": 620, "properties_no_doc": 3198},
+        "آبادان": {"total_endowments": 954, "endowments_has_doc": 303, "endowments_no_doc": 651, "total_properties": 2863, "properties_has_doc": 465, "properties_no_doc": 2398},
+        "خرمشهر": {"total_endowments": 636, "endowments_has_doc": 202, "endowments_no_doc": 434, "total_properties": 1909, "properties_has_doc": 310, "properties_no_doc": 1599},
+        "سایر": {"total_endowments": 1275, "endowments_has_doc": 405, "endowments_no_doc": 870, "total_properties": 3820, "properties_has_doc": 610, "properties_no_doc": 3210}
+    },
+    "زنجان": {
+        "زنجان": {"total_endowments": 1167, "endowments_has_doc": 986, "endowments_no_doc": 181, "total_properties": 14006, "properties_has_doc": 11283, "properties_no_doc": 2723},
+        "ابهر": {"total_endowments": 583, "endowments_has_doc": 135, "endowments_no_doc": 448, "total_properties": 7003, "properties_has_doc": 285, "properties_no_doc": 6718},
+        "خرمدره": {"total_endowments": 437, "endowments_has_doc": 101, "endowments_no_doc": 336, "total_properties": 5252, "properties_has_doc": 214, "properties_no_doc": 5038},
+        "سایر": {"total_endowments": 731, "endowments_has_doc": 186, "endowments_no_doc": 545, "total_properties": 8755, "properties_has_doc": 580, "properties_no_doc": 8175}
+    },
+    "سمنان": {
+        "سمنان": {"total_endowments": 2061, "endowments_has_doc": 1768, "endowments_no_doc": 293, "total_properties": 10307, "properties_has_doc": 8431, "properties_no_doc": 1876},
+        "شاهرود": {"total_endowments": 1472, "endowments_has_doc": 506, "endowments_no_doc": 966, "total_properties": 7362, "properties_has_doc": 469, "properties_no_doc": 6893},
+        "دامغان": {"total_endowments": 883, "endowments_has_doc": 303, "endowments_no_doc": 580, "total_properties": 4417, "properties_has_doc": 281, "properties_no_doc": 4136},
+        "گرمسار": {"total_endowments": 589, "endowments_has_doc": 202, "endowments_no_doc": 387, "total_properties": 2945, "properties_has_doc": 188, "properties_no_doc": 2757},
+        "سایر": {"total_endowments": 885, "endowments_has_doc": 312, "endowments_no_doc": 573, "total_properties": 4419, "properties_has_doc": 327, "properties_no_doc": 4092}
+    },
+    "سیستان و بلوچستان": {
+        "زاهدان": {"total_endowments": 1873, "endowments_has_doc": 1838, "endowments_no_doc": 35, "total_properties": 16861, "properties_has_doc": 7359, "properties_no_doc": 9502},
+        "زابل": {"total_endowments": 1070, "endowments_has_doc": 0, "endowments_no_doc": 1070, "total_properties": 9635, "properties_has_doc": 0, "properties_no_doc": 9635},
+        "ایرانشهر": {"total_endowments": 802, "endowments_has_doc": 0, "endowments_no_doc": 802, "total_properties": 7226, "properties_has_doc": 0, "properties_no_doc": 7226},
+        "چابهار": {"total_endowments": 535, "endowments_has_doc": 0, "endowments_no_doc": 535, "total_properties": 4817, "properties_has_doc": 0, "properties_no_doc": 4817},
+        "سایر": {"total_endowments": 1073, "endowments_has_doc": 0, "endowments_no_doc": 1073, "total_properties": 9638, "properties_has_doc": 0, "properties_no_doc": 9638}
+    },
+    "فارس": {
+        "شیراز": {"total_endowments": 5453, "endowments_has_doc": 4767, "endowments_no_doc": 686, "total_properties": 59989, "properties_has_doc": 50541, "properties_no_doc": 9448},
+        "مرودشت": {"total_endowments": 2045, "endowments_has_doc": 1109, "endowments_no_doc": 936, "total_properties": 22496, "properties_has_doc": 5183, "properties_no_doc": 17313},
+        "کازرون": {"total_endowments": 1363, "endowments_has_doc": 739, "endowments_no_doc": 624, "total_properties": 14997, "properties_has_doc": 3455, "properties_no_doc": 11542},
+        "جهرم": {"total_endowments": 1363, "endowments_has_doc": 739, "endowments_no_doc": 624, "total_properties": 14997, "properties_has_doc": 3455, "properties_no_doc": 11542},
+        "فسا": {"total_endowments": 1363, "endowments_has_doc": 739, "endowments_no_doc": 624, "total_properties": 14997, "properties_has_doc": 3455, "properties_no_doc": 11542},
+        "سایر": {"total_endowments": 2047, "endowments_has_doc": 1097, "endowments_no_doc": 950, "total_properties": 22498, "properties_has_doc": 5170, "properties_no_doc": 17328}
+    },
+    "قزوین": {
+        "قزوین": {"total_endowments": 1129, "endowments_has_doc": 952, "endowments_no_doc": 177, "total_properties": 11296, "properties_has_doc": 9037, "properties_no_doc": 2259},
+        "تاکستان": {"total_endowments": 564, "endowments_has_doc": 135, "endowments_no_doc": 429, "total_properties": 5648, "properties_has_doc": 121, "properties_no_doc": 5527},
+        "البرز": {"total_endowments": 423, "endowments_has_doc": 101, "endowments_no_doc": 322, "total_properties": 4236, "properties_has_doc": 91, "properties_no_doc": 4145},
+        "بوئین زهرا": {"total_endowments": 282, "endowments_has_doc": 67, "endowments_no_doc": 215, "total_properties": 2824, "properties_has_doc": 61, "properties_no_doc": 2763},
+        "سایر": {"total_endowments": 426, "endowments_has_doc": 95, "endowments_no_doc": 331, "total_properties": 4236, "properties_has_doc": 117, "properties_no_doc": 4119}
+    },
+    "قم": {
+        "قم": {"total_endowments": 2245, "endowments_has_doc": 1622, "endowments_no_doc": 623, "total_properties": 26946, "properties_has_doc": 14580, "properties_no_doc": 12366},
+        "سایر": {"total_endowments": 250, "endowments_has_doc": 0, "endowments_no_doc": 250, "total_properties": 2994, "properties_has_doc": 0, "properties_no_doc": 2994}
+    },
+    "کردستان": {
+        "سنندج": {"total_endowments": 910, "endowments_has_doc": 671, "endowments_no_doc": 239, "total_properties": 6374, "properties_has_doc": 3235, "properties_no_doc": 3139},
+        "سقز": {"total_endowments": 520, "endowments_has_doc": 0, "endowments_no_doc": 520, "total_properties": 3642, "properties_has_doc": 0, "properties_no_doc": 3642},
+        "مریوان": {"total_endowments": 390, "endowments_has_doc": 0, "endowments_no_doc": 390, "total_properties": 2732, "properties_has_doc": 0, "properties_no_doc": 2732},
+        "بانه": {"total_endowments": 260, "endowments_has_doc": 0, "endowments_no_doc": 260, "total_properties": 1821, "properties_has_doc": 0, "properties_no_doc": 1821},
+        "سایر": {"total_endowments": 522, "endowments_has_doc": 0, "endowments_no_doc": 522, "total_properties": 3645, "properties_has_doc": 0, "properties_no_doc": 3645}
+    },
+    "کرمان": {
+        "کرمان": {"total_endowments": 3085, "endowments_has_doc": 2598, "endowments_no_doc": 487, "total_properties": 33941, "properties_has_doc": 27202, "properties_no_doc": 6739},
+        "سیرجان": {"total_endowments": 1322, "endowments_has_doc": 368, "endowments_no_doc": 954, "total_properties": 14546, "properties_has_doc": 1346, "properties_no_doc": 13200},
+        "رفسنجان": {"total_endowments": 1322, "endowments_has_doc": 368, "endowments_no_doc": 954, "total_properties": 14546, "properties_has_doc": 1346, "properties_no_doc": 13200},
+        "جیرفت": {"total_endowments": 881, "endowments_has_doc": 245, "endowments_no_doc": 636, "total_properties": 9697, "properties_has_doc": 898, "properties_no_doc": 8799},
+        "سایر": {"total_endowments": 2206, "endowments_has_doc": 605, "endowments_no_doc": 1601, "total_properties": 24246, "properties_has_doc": 2213, "properties_no_doc": 22033}
+    }
+}
+PROVINCE_TOTALS = {
+    "آذربایجان شرقی": {
+        "total_endowments": 9733,
+        "endowments_has_doc": 5832,
+        "endowments_no_doc": 3901,
+        "total_properties": 87597,
+        "properties_has_doc": 49254,
+        "properties_no_doc": 38343
+    },
+    "آذربایجان غربی": {
+        "total_endowments": 7040,
+        "endowments_has_doc": 3250,
+        "endowments_no_doc": 3790,
+        "total_properties": 35200,
+        "properties_has_doc": 13509,
+        "properties_no_doc": 21691
+    },
+    "اردبیل": {
+        "total_endowments": 3280,
+        "endowments_has_doc": 1738,
+        "endowments_no_doc": 1542,
+        "total_properties": 13120,
+        "properties_has_doc": 5536,
+        "properties_no_doc": 7584
+    },
+    "اصفهان": {
+        "total_endowments": 17007,
+        "endowments_has_doc": 10498,
+        "endowments_no_doc": 6509,
+        "total_properties": 204084,
+        "properties_has_doc": 103639,
+        "properties_no_doc": 100445
+    },
+    "البرز": {
+        "total_endowments": 1966,
+        "endowments_has_doc": 1300,
+        "endowments_no_doc": 666,
+        "total_properties": 21626,
+        "properties_has_doc": 10358,
+        "properties_no_doc": 11268
+    },
+    "ایلام": {
+        "total_endowments": 835,
+        "endowments_has_doc": 249,
+        "endowments_no_doc": 586,
+        "total_properties": 10020,
+        "properties_has_doc": 1705,
+        "properties_no_doc": 8315
+    },
+    "بوشهر": {
+        "total_endowments": 3257,
+        "endowments_has_doc": 990,
+        "endowments_no_doc": 2267,
+        "total_properties": 13028,
+        "properties_has_doc": 2113,
+        "properties_no_doc": 10915
+    },
+    "تهران": {
+        "total_endowments": 10301,
+        "endowments_has_doc": 6502,
+        "endowments_no_doc": 3799,
+        "total_properties": 103010,
+        "properties_has_doc": 58561,
+        "properties_no_doc": 44449
+    },
+    "چهارمحال و بختیاری": {
+        "total_endowments": 1988,
+        "endowments_has_doc": 581,
+        "endowments_no_doc": 1407,
+        "total_properties": 23856,
+        "properties_has_doc": 4759,
+        "properties_no_doc": 19097
+    },
+    "خراسان جنوبی": {
+        "total_endowments": 10635,
+        "endowments_has_doc": 3075,
+        "endowments_no_doc": 7560,
+        "total_properties": 53175,
+        "properties_has_doc": 11652,
+        "properties_no_doc": 41523
+    },
+    "خراسان رضوی": {
+        "total_endowments": 27571,
+        "endowments_has_doc": 18670,
+        "endowments_no_doc": 8901,
+        "total_properties": 248139,
+        "properties_has_doc": 126069,
+        "properties_no_doc": 122070
+    },
+    "خراسان شمالی": {
+        "total_endowments": 5975,
+        "endowments_has_doc": 1695,
+        "endowments_no_doc": 4280,
+        "total_properties": 35850,
+        "properties_has_doc": 6010,
+        "properties_no_doc": 29840
+    },
+    "خوزستان": {
+        "total_endowments": 6364,
+        "endowments_has_doc": 3210,
+        "endowments_no_doc": 3154,
+        "total_properties": 19092,
+        "properties_has_doc": 7469,
+        "properties_no_doc": 11623
+    },
+    "زنجان": {
+        "total_endowments": 2918,
+        "endowments_has_doc": 1408,
+        "endowments_no_doc": 1510,
+        "total_properties": 35016,
+        "properties_has_doc": 12362,
+        "properties_no_doc": 22654
+    },
+    "سمنان": {
+        "total_endowments": 5890,
+        "endowments_has_doc": 3091,
+        "endowments_no_doc": 2799,
+        "total_properties": 29450,
+        "properties_has_doc": 9696,
+        "properties_no_doc": 19754
+    },
+    "سیستان و بلوچستان": {
+        "total_endowments": 5353,
+        "endowments_has_doc": 1838,
+        "endowments_no_doc": 3515,
+        "total_properties": 48177,
+        "properties_has_doc": 7359,
+        "properties_no_doc": 40818
+    },
+    "فارس": {
+        "total_endowments": 13634,
+        "endowments_has_doc": 9190,
+        "endowments_no_doc": 4444,
+        "total_properties": 149974,
+        "properties_has_doc": 71259,
+        "properties_no_doc": 78715
+    },
+    "قزوین": {
+        "total_endowments": 2824,
+        "endowments_has_doc": 1350,
+        "endowments_no_doc": 1474,
+        "total_properties": 28240,
+        "properties_has_doc": 9427,
+        "properties_no_doc": 18813
+    },
+    "قم": {
+        "total_endowments": 2495,
+        "endowments_has_doc": 1622,
+        "endowments_no_doc": 873,
+        "total_properties": 29940,
+        "properties_has_doc": 14580,
+        "properties_no_doc": 15360
+    },
+    "کردستان": {
+        "total_endowments": 2602,
+        "endowments_has_doc": 671,
+        "endowments_no_doc": 1931,
+        "total_properties": 18214,
+        "properties_has_doc": 3235,
+        "properties_no_doc": 14979
+    },
+    "کرمان": {
+        "total_endowments": 8816,
+        "endowments_has_doc": 4184,
+        "endowments_no_doc": 4632,
+        "total_properties": 96976,
+        "properties_has_doc": 33005,
+        "properties_no_doc": 63971
+    },
+    "کرمانشاه": {
+        "total_endowments": 2280,
+        "endowments_has_doc": 1229,
+        "endowments_no_doc": 1051,
+        "total_properties": 9120,
+        "properties_has_doc": 3415,
+        "properties_no_doc": 5705
+    },
+    "کهگیلویه و بویراحمد": {
+        "total_endowments": 1376,
+        "endowments_has_doc": 381,
+        "endowments_no_doc": 995,
+        "total_properties": 6880,
+        "properties_has_doc": 1591,
+        "properties_no_doc": 5289
+    },
+    "گلستان": {
+        "total_endowments": 5973,
+        "endowments_has_doc": 1938,
+        "endowments_no_doc": 4035,
+        "total_properties": 41811,
+        "properties_has_doc": 8764,
+        "properties_no_doc": 33047
+    },
+    "گیلان": {
+        "total_endowments": 5098,
+        "endowments_has_doc": 1510,
+        "endowments_no_doc": 3588,
+        "total_properties": 56078,
+        "properties_has_doc": 14823,
+        "properties_no_doc": 41255
+    },
+    "لرستان": {
+        "total_endowments": 3098,
+        "endowments_has_doc": 853,
+        "endowments_no_doc": 2245,
+        "total_properties": 34078,
+        "properties_has_doc": 6568,
+        "properties_no_doc": 27510
+    },
+    "مازندران": {
+        "total_endowments": 14975,
+        "endowments_has_doc": 3755,
+        "endowments_no_doc": 11220,
+        "total_properties": 59900,
+        "properties_has_doc": 12857,
+        "properties_no_doc": 47043
+    },
+    "مرکزی": {
+        "total_endowments": 5935,
+        "endowments_has_doc": 2810,
+        "endowments_no_doc": 3125,
+        "total_properties": 47480,
+        "properties_has_doc": 17098,
+        "properties_no_doc": 30382
+    },
+    "هرمزگان": {
+        "total_endowments": 7940,
+        "endowments_has_doc": 2596,
+        "endowments_no_doc": 5344,
+        "total_properties": 95280,
+        "properties_has_doc": 20554,
+        "properties_no_doc": 74726
+    },
+    "همدان": {
+        "total_endowments": 3569,
+        "endowments_has_doc": 1905,
+        "endowments_no_doc": 1664,
+        "total_properties": 17845,
+        "properties_has_doc": 5965,
+        "properties_no_doc": 11880
+    },
+    "یزد": {
+        "total_endowments": 15052,
+        "endowments_has_doc": 9969,
+        "endowments_no_doc": 5083,
+        "total_properties": 105364,
+        "properties_has_doc": 57856,
+        "properties_no_doc": 47508
+    }
+}
+
+
 MALE_TITLES = ["حاج", "کربلایی", "مشهدی", "سید", "آقا"]
 MALE_NAMES = ["علی", "محمد", "حسین", "حسن", "رضا", "مهدی", "عباس"]
 LAST_NAMES = ["شیرازی", "تهرانی", "اصفهانی", "خراسانی", "حسینی", "موسوی"]
@@ -144,7 +540,6 @@ EXACT_TARGETS = {
     'فارس': {'waqfs': 13634, 'waqfs_no_doc': 8155, 'props': 195955, 'props_no_doc': 162924},
     'مازندران': {'waqfs': 14975, 'waqfs_no_doc': 11081, 'props': 224625, 'props_no_doc': 213393} # 74% waqf no doc, 15 props/waqf, 95% props no doc
 }
-
 class OghafDatabaseBuilder:
     def __init__(self, db_name='oqaf.db'):
         self.db_name = db_name
@@ -173,26 +568,33 @@ class OghafDatabaseBuilder:
         self.cursor.executemany('INSERT INTO provinces VALUES (?,?,?,?)', PROVINCES)
         county_id = 1
         self.counties_map = {} 
+        
         for p in PROVINCES:
             p_id, p_name, p_lat, p_lng = p
             self.counties_map[p_name] = []
-            config = COUNTY_MULTIPLIERS.get(p_name, [('سایر', 1.0, 1.0)])
             
-            allocated_waqfs = 0
-            total_prov_waqfs = PROVINCE_TOTALS.get(p_name, 1000)
+            if p_name not in COUNTY_STATS:
+                continue
+                
+            county_stats = COUNTY_STATS[p_name]
             
-            for idx, (c_name, multiplier, prob) in enumerate(config):
+            # استخراج Multiplier های قبلی برای محاسبه درآمد
+            old_multipliers = {}
+            if p_name in COUNTY_MULTIPLIERS:
+                for c_name, mult, _ in COUNTY_MULTIPLIERS[p_name]:
+                    old_multipliers[c_name] = mult
+            
+            for c_name, stats in county_stats.items():
                 final_c_name = f"سایر شهرستان‌های {p_name}" if c_name == 'سایر' else c_name
                 lat, lng = REAL_COUNTY_COORDS.get(final_c_name, (p_lat + random.uniform(-0.3, 0.3), p_lng + random.uniform(-0.3, 0.3)))
                 
-                c_target_waqfs = int(total_prov_waqfs * prob) if idx < len(config)-1 else total_prov_waqfs - allocated_waqfs
-                allocated_waqfs += c_target_waqfs
+                multiplier = old_multipliers.get(c_name, 0.6)
                 
                 self.cursor.execute('INSERT INTO counties (id, province_id, name, lat, lng, multiplier) VALUES (?,?,?,?,?,?)',
                                     (county_id, p_id, final_c_name, lat, lng, multiplier))
                 self.counties_map[p_name].append({
                     'id': county_id, 'name': final_c_name, 'lat': lat, 'lng': lng, 
-                    'multiplier': multiplier, 'target_waqfs': c_target_waqfs
+                    'multiplier': multiplier, 'stats': stats
                 })
                 county_id += 1
         self.conn.commit()
@@ -204,68 +606,75 @@ class OghafDatabaseBuilder:
         prop_id = 1
         BATCH_SIZE = 50000 
         
-        print(f"[*] Starting exact generation. Unit of money: Million Tomans. Please wait...")
+        print(f"[*] Starting exact generation based on COUNTY_STATS. Please wait...")
         
         for p in PROVINCES:
             p_name = p[1]
+            if p_name not in self.counties_map:
+                continue
+                
             counties = self.counties_map[p_name]
             
-            # === تعیین تارگت‌های استان ===
-            if p_name in EXACT_TARGETS:
-                exact = EXACT_TARGETS[p_name]
-                total_waqfs = exact['waqfs']
-                total_props = exact['props']
-                waqf_docs = ['فاقد سند'] * exact['waqfs_no_doc'] + ['دارای سند'] * (total_waqfs - exact['waqfs_no_doc'])
-                prop_docs = ['فاقد سند'] * exact['props_no_doc'] + ['تک برگ'] * (total_props - exact['props_no_doc'])
-            else:
-                total_waqfs = PROVINCE_TOTALS.get(p_name, 1000)
-                waqf_no_doc = int(total_waqfs * 0.6)
-                waqf_docs = ['فاقد سند'] * waqf_no_doc + ['دارای سند'] * (total_waqfs - waqf_no_doc)
-                total_props = int(total_waqfs * 12.8)
-                prop_no_doc = int(total_props * 0.8)
-                prop_docs = ['فاقد سند'] * prop_no_doc + ['تک برگ'] * (total_props - prop_no_doc)
-
-            random.shuffle(waqf_docs)
-            random.shuffle(prop_docs)
-            
-            # توزیع دقیق رقبات بین موقوفات
-            base_counts = np.random.negative_binomial(n=1.3, p=0.1, size=total_waqfs) + 1
-            scaled_counts = np.round(base_counts * (total_props / base_counts.sum())).astype(int)
-            diff = total_props - scaled_counts.sum()
-            
-            if diff > 0:
-                for _ in range(diff): scaled_counts[random.randint(0, total_waqfs-1)] += 1
-            elif diff < 0:
-                for _ in range(-diff):
-                    idx = random.randint(0, total_waqfs-1)
-                    while scaled_counts[idx] <= 1: idx = random.randint(0, total_waqfs-1)
-                    scaled_counts[idx] -= 1
-            
-            w_idx_global = 0
-            p_idx_global = 0
-            
             for c in counties:
-                target = c['target_waqfs']
-                for _ in range(target):
-                    if w_idx_global >= total_waqfs: break
+                stats = c['stats']
+                total_waqfs = stats['total_endowments']
+                waqfs_has_doc = stats['endowments_has_doc']
+                waqfs_no_doc = stats['endowments_no_doc']
+                
+                total_props = stats['total_properties']
+                props_has_doc = stats['properties_has_doc']
+                props_no_doc = stats['properties_no_doc']
+                
+                if total_waqfs == 0:
+                    continue
+                
+                # ۱. ساخت لیست دقیق وضعیت سند و ترکیب تصادفی آن‌ها
+                waqf_docs = ['فاقد سند'] * waqfs_no_doc + ['دارای سند'] * waqfs_has_doc
+                prop_docs = ['فاقد سند'] * props_no_doc + ['تک برگ'] * props_has_doc
+                random.shuffle(waqf_docs)
+                random.shuffle(prop_docs)
+                
+                # ۲. توزیع تعداد رقبات بین موقوفات (هر موقوفه بین ۱ تا ۱۰۰ رقبه)
+                counts = np.ones(total_waqfs, dtype=int)
+                remaining_props = total_props - total_waqfs
+                
+                while remaining_props > 0:
+                    # پیدا کردن اندیس موقوفاتی که هنوز به مرز 100 رقبه نرسیده‌اند
+                    available = np.where(counts < 100)[0]
+                    if len(available) == 0:
+                        # اگر همه 100 تا شدند و باز هم رقبه ماند (که در داده های ما پیش نمی آید)، سرریز می کنیم
+                        idx = random.randint(0, total_waqfs - 1)
+                        counts[idx] += remaining_props
+                        break
                     
-                    r_count = scaled_counts[w_idx_global]
-                    w_doc = waqf_docs[w_idx_global]
-                    w_idx_global += 1
+                    idx = random.choice(available)
+                    space = 100 - counts[idx]
+                    add = min(remaining_props, random.randint(1, min(10, space)))
+                    counts[idx] += add
+                    remaining_props -= add
+                
+                np.random.shuffle(counts)
+                props_per_waqf = counts.tolist()
+                
+                # ۳. تولید رکوردها و تخصیص اسناد
+                p_idx_global = 0
+                for w_idx in range(total_waqfs):
+                    r_count = props_per_waqf[w_idx]
+                    w_doc = waqf_docs[w_idx]
                     
                     e_name = f"موقوفه {random.choice(MALE_TITLES)} {random.choice(MALE_NAMES)} {random.choice(LAST_NAMES)}" if random.random() > 0.2 else f"موقوفه مسجد {random.choice(['جامع', 'اعظم', 'بازار'])}"
                     
                     endowments_data.append([
-                        endowment_id, c['id'], e_name, int(r_count), 
+                        endowment_id, c['id'], e_name, r_count, 
                         "متصرفی", random.choice(INTENTS), 0.0, 
                         c['lat'] + random.uniform(-0.02, 0.02), c['lng'] + random.uniform(-0.02, 0.02), w_doc
                     ])
                     
                     total_income = 0
                     
-                    for _ in range(int(r_count)):
-                        if p_idx_global >= total_props: break
-                        r_doc = prop_docs[p_idx_global]
+                    for _ in range(r_count):
+                        # ایمنی برای جلوگیری از خطای Index (نباید رخ دهد)
+                        r_doc = prop_docs[p_idx_global] if p_idx_global < total_props else 'تک برگ'
                         p_idx_global += 1
                         
                         p_type = np.random.choice(['مسکونی', 'تجاری', 'اداری', 'زراعی'], p=[0.4, 0.15, 0.05, 0.4])
@@ -276,10 +685,8 @@ class OghafDatabaseBuilder:
                         elif p_type == 'اداری': area, std = random.randint(50, 300), 80.0
                         else: area, std = random.randint(2000, 50000), 10000.0
                             
-                        # درآمد سالانه به میلیون تومان
                         annual_million = ((area / std) * base_rent_monthly_million * c['multiplier']) * 12
                         
-                        # اعمال ضریب زیان واقعی (Loss Factor) معادل ۱۰ تا ۱۵ درصد اجاره بها به دلیل نداشتن سند 
                         if r_doc == 'فاقد سند':
                             lost_annual_million = round(annual_million * random.uniform(0.10, 0.15), 2)
                         else:
@@ -300,6 +707,7 @@ class OghafDatabaseBuilder:
                     endowments_data[-1] = tuple(endowments_data[-1])
                     endowment_id += 1
                     
+                    # ذخیره سازی مرحله‌ای در دیتابیس برای جلوگیری از پر شدن حافظه
                     if len(properties_data) >= BATCH_SIZE:
                         self.cursor.executemany('INSERT INTO endowments VALUES (?,?,?,?,?,?,?,?,?,?)', endowments_data)
                         self.cursor.executemany('INSERT INTO properties VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)', properties_data)
@@ -309,6 +717,7 @@ class OghafDatabaseBuilder:
                         
             print(f"  - Province generated: {p_name}")
 
+        # ثبت داده‌های باقیمانده در دیتابیس
         if properties_data:
             self.cursor.executemany('INSERT INTO endowments VALUES (?,?,?,?,?,?,?,?,?,?)', endowments_data)
             self.cursor.executemany('INSERT INTO properties VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)', properties_data)
