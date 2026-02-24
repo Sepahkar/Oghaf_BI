@@ -723,11 +723,47 @@ class OghafDatabaseBuilder:
             self.cursor.executemany('INSERT INTO properties VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)', properties_data)
             self.conn.commit()
 
+    def update_document_types(self):
+        print("[*] Distributing valid documents to 'تک برگ' and 'دفترچه ای' (20% - 80%)...")
+        
+        # گرفتن لیست تمام شهرستان‌ها
+        self.cursor.execute("SELECT id FROM counties")
+        counties = self.cursor.fetchall()
+        
+        for (county_id,) in counties:
+            # تولید یک درصد تصادفی بین 20 تا 80 برای شهرستان
+            ratio_percent = random.randint(20, 80)
+            
+            # 1. آپدیت موقوفات دارای سند
+            self.cursor.execute("""
+                UPDATE endowments 
+                SET document_status = CASE 
+                    WHEN abs(random() % 100) < ? THEN 'تک برگ' 
+                    ELSE 'دفترچه ای' 
+                END
+                WHERE county_id = ? AND document_status != 'فاقد سند'
+            """, (ratio_percent, county_id))
+            
+            # 2. آپدیت رقبات دارای سند
+            self.cursor.execute("""
+                UPDATE properties 
+                SET document_status = CASE 
+                    WHEN abs(random() % 100) < ? THEN 'تک برگ' 
+                    ELSE 'دفترچه ای' 
+                END
+                WHERE endowment_id IN (SELECT id FROM endowments WHERE county_id = ?) 
+                  AND document_status != 'فاقد سند'
+            """, (ratio_percent, county_id))
+            
+        self.conn.commit()
+        print("[*] Document types distributed successfully.")
+
     def run_pipeline(self):
         self.initialize()
         self.build_schema()
         self.generate_counties()
         self.generate_data()
+        self.update_document_types()  # <--- این خط اضافه می‌شود
         self.conn.close()
         print("[*] DONE! Database is successfully generated.")
 
